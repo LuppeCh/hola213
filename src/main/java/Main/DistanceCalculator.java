@@ -19,7 +19,7 @@ public class DistanceCalculator {
                 .build();
     }
 
-    public String calculateRoute(String origen, String destino) throws Exception {
+    public Ruta calculateRoute(String origen, String destino) throws Exception {
 
         String origenContexto = origen + ", Rosario, Santa Fe, Argentina";
         String destinoContexto = destino + ", Rosario, Santa Fe, Argentina";
@@ -32,36 +32,28 @@ public class DistanceCalculator {
                 origenURL,
                 destinoURL
         );
+        // Llama a la API de Distance Matrix
+        DistanceMatrixElement element = DistanceMatrixApi.getDistanceMatrix(context,
+                        new String[]{origenContexto},
+                        new String[]{destinoContexto})
+                .mode(TravelMode.DRIVING)
+                .await()
+                .rows[0].elements[0];
 
-        try {
-            // Llama a la API de Distance Matrix
-            DistanceMatrixElement element = DistanceMatrixApi.getDistanceMatrix(context,
-                            new String[]{origenContexto},
-                            new String[]{destinoContexto})
-                    .mode(TravelMode.DRIVING)
-                    .await()
-                    .rows[0].elements[0];
-
-            if (element.status.toString().equals("OK")) {
-                String distancia = element.distance.humanReadable;
-                String tiempo = element.duration.humanReadable;
-
-                return String.format(
-                        "RUTA ENCONTRADA:\n   - Distancia por carretera: **%s**\n   - Tiempo de viaje estimado: %s\n   -  Ver en Mapa: %s",
-                        distancia, tiempo, mapLink
-                );
-            } else {
-                return "❌ ERROR: No se pudo encontrar una ruta válida. Estado: " + element.status;
-            }
-
-        } catch (Exception e) {
-            throw new Exception("Error de conexión con la API: " + e.getMessage());
+        if (!element.status.toString().equals("OK")) {
+            throw new Exception("No se pudo obtener la ruta. Estado: " + element.status);
         }
-    }
 
+        return new Ruta(
+                element.distance.inMeters,
+                element.distance.humanReadable,
+                element.duration.humanReadable,
+                mapLink
+        );
+    }
     public void closeContext() {
         if (context != null) {
-            context.shutdown();
+                context.shutdown();
         }
     }
 }
