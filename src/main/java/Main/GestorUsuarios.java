@@ -1,6 +1,11 @@
 package Main;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.*;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -8,10 +13,12 @@ import java.util.regex.Pattern;
 
 public class GestorUsuarios {
 
-    private static final String ARCHIVO_USUARIOS = "usuarios.dat";
+    private static final String ARCHIVO_USUARIOS = "usuarios.json";
     private List<Cliente> clientes;
+    private Gson gson;
 
     public GestorUsuarios() {
+        this.gson = new GsonBuilder().setPrettyPrinting().create();
         this.clientes = cargarUsuarios();
     }
 
@@ -19,7 +26,6 @@ public class GestorUsuarios {
     // VALIDACIÓN DE EMAIL CON PATTERN MATCHING
     // ========================================
     public boolean validarEmail(String email) {
-        // Pattern matching para validar formato @gmail.com
         Pattern patron = Pattern.compile("^[A-Za-z0-9+_.-]+@gmail\\.com$");
         return patron.matcher(email).matches();
     }
@@ -28,21 +34,16 @@ public class GestorUsuarios {
     // REGISTRAR NUEVO CLIENTE
     // ========================================
     public boolean registrarCliente(String nombre, String email) {
-        // Validar email
         if (!validarEmail(email)) {
             return false;
         }
 
-        // Verificar que no exista ya
         if (buscarClientePorEmail(email).isPresent()) {
-            return false; // Ya existe
+            return false;
         }
 
-        // Crear y agregar nuevo cliente
         Cliente nuevoCliente = new Cliente(nombre, email);
         clientes.add(nuevoCliente);
-
-        // Guardar en archivo
         guardarUsuarios();
 
         return true;
@@ -56,7 +57,7 @@ public class GestorUsuarios {
     }
 
     // ========================================
-    // BUSCAR CLIENTE POR EMAIL (usando Streams)
+    // BUSCAR CLIENTE POR EMAIL
     // ========================================
     private Optional<Cliente> buscarClientePorEmail(String email) {
         return clientes.stream()
@@ -65,21 +66,19 @@ public class GestorUsuarios {
     }
 
     // ========================================
-    // SERIALIZACIÓN - GUARDAR
+    // GUARDAR EN JSON
     // ========================================
     private void guardarUsuarios() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(
-                new FileOutputStream(ARCHIVO_USUARIOS))) {
-            oos.writeObject(clientes);
+        try (FileWriter writer = new FileWriter(ARCHIVO_USUARIOS)) {
+            gson.toJson(clientes, writer);
         } catch (IOException e) {
             System.err.println("Error al guardar usuarios: " + e.getMessage());
         }
     }
 
     // ========================================
-    // DESERIALIZACIÓN - CARGAR
+    // CARGAR DESDE JSON
     // ========================================
-    @SuppressWarnings("unchecked")
     private List<Cliente> cargarUsuarios() {
         File archivo = new File(ARCHIVO_USUARIOS);
 
@@ -87,17 +86,18 @@ public class GestorUsuarios {
             return new ArrayList<>();
         }
 
-        try (ObjectInputStream ois = new ObjectInputStream(
-                new FileInputStream(ARCHIVO_USUARIOS))) {
-            return (List<Cliente>) ois.readObject();
-        } catch (IOException | ClassNotFoundException e) {
+        try (FileReader reader = new FileReader(ARCHIVO_USUARIOS)) {
+            Type listType = new TypeToken<ArrayList<Cliente>>(){}.getType();
+            List<Cliente> clientesCargados = gson.fromJson(reader, listType);
+            return clientesCargados != null ? clientesCargados : new ArrayList<>();
+        } catch (IOException e) {
             System.err.println("Error al cargar usuarios: " + e.getMessage());
             return new ArrayList<>();
         }
     }
 
     // ========================================
-    // OBTENER TODOS LOS CLIENTES (para futuro uso con Streams)
+    // OBTENER TODOS LOS CLIENTES
     // ========================================
     public List<Cliente> obtenerTodosLosClientes() {
         return new ArrayList<>(clientes);
