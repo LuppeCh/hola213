@@ -10,6 +10,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.beans.binding.Bindings;
+import javafx.scene.paint.Color;
 
 public class MainApp extends Application {
 
@@ -143,8 +144,9 @@ public class MainApp extends Application {
         ));
 
         Label lblMensaje = new Label("");
+        lblMensaje.setStyle("-fx-font-weight: bold;");
         lblMensaje.styleProperty().bind(Bindings.concat(
-                "-fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: ", stage.widthProperty().divide(70), "px;"
+                "-fx-font-weight: bold; -fx-font-size: ", stage.widthProperty().divide(70), "px;"
         ));
 
         Button btnRegistrar = new Button("Registrarse");
@@ -158,18 +160,18 @@ public class MainApp extends Application {
 
             if (nombre.isEmpty() || email.isEmpty()) {
                 lblMensaje.setText("⚠️ Todos los campos son obligatorios");
-                lblMensaje.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                lblMensaje.setTextFill(Color.RED);
                 return;
             }
 
             if (gestorUsuarios.registrarCliente(nombre, email)) {
                 lblMensaje.setText("✅ Registro exitoso! Ahora puedes iniciar sesión");
-                lblMensaje.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                lblMensaje.setTextFill(Color.GREEN);
                 txtNombre.clear();
                 txtEmail.clear();
             } else {
                 lblMensaje.setText("❌ Email inválido o ya registrado (debe ser @gmail.com)");
-                lblMensaje.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                lblMensaje.setTextFill(Color.RED);
             }
         });
 
@@ -222,8 +224,9 @@ public class MainApp extends Application {
         ));
 
         Label lblMensaje = new Label("");
+        lblMensaje.setStyle("-fx-font-weight: bold;");
         lblMensaje.styleProperty().bind(Bindings.concat(
-                "-fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: ", stage.widthProperty().divide(70), "px;"
+                "-fx-font-weight: bold; -fx-font-size: ", stage.widthProperty().divide(70), "px;"
         ));
 
         Button btnLogin = new Button("Ingresar");
@@ -236,7 +239,7 @@ public class MainApp extends Application {
 
             if (email.isEmpty()) {
                 lblMensaje.setText("⚠️ Debe ingresar un email");
-                lblMensaje.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                lblMensaje.setTextFill(Color.RED);
                 return;
             }
 
@@ -247,7 +250,7 @@ public class MainApp extends Application {
                 mostrarPantallaBienvenida();
             } else {
                 lblMensaje.setText("❌ Usuario no encontrado");
-                lblMensaje.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                lblMensaje.setTextFill(Color.RED);
             }
         });
 
@@ -299,8 +302,9 @@ public class MainApp extends Application {
         lblMensaje.setWrapText(true);
         lblMensaje.setMaxWidth(600);
         lblMensaje.setAlignment(Pos.CENTER);
+        lblMensaje.setStyle("-fx-font-weight: bold;");
         lblMensaje.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(60), "px; -fx-font-weight: bold;"
+                "-fx-font-weight: bold; -fx-font-size: ", stage.widthProperty().divide(60), "px;"
         ));
 
         // ===== ORIGEN =====
@@ -430,23 +434,7 @@ public class MainApp extends Application {
                 "-fx-background-color: #FF5722; -fx-text-fill: white; -fx-background-radius: 5; -fx-font-weight: bold;"
         ));
 
-        btnIniciarViaje.setOnAction(e -> {
-            if (origenSeleccionado == null || destinoSeleccionado == null) {
-                lblMensaje.setText("⚠️ Por favor, selecciona origen y destino antes de iniciar el viaje");
-                lblMensaje.setStyle("-fx-text-fill: #FF5722; -fx-font-weight: bold;");
-                opcionesViajeContainer.setVisible(false);
-                return;
-            }
-
-            // Mostrar mensaje de carga
-            lblMensaje.setText("⏳ Calculando ruta, por favor espera...");
-            lblMensaje.setStyle("-fx-text-fill: #2196F3; -fx-font-weight: bold;");
-            opcionesViajeContainer.setVisible(false);
-
-            // Calcular ruta
-            calcularYMostrarOpciones(lblMensaje, opcionesViajeContainer);
-        });
-
+        // ===== BOTÓN CERRAR SESIÓN =====
         Button btnCerrarSesion = new Button("Cerrar Sesión");
         btnCerrarSesion.styleProperty().bind(Bindings.concat(
                 "-fx-font-size: ", stage.widthProperty().divide(60), "px; ",
@@ -457,6 +445,29 @@ public class MainApp extends Application {
             origenSeleccionado = null;
             destinoSeleccionado = null;
             mostrarPantallaTitulo();
+        });
+
+        btnIniciarViaje.setOnAction(e -> {
+            if (origenSeleccionado == null || destinoSeleccionado == null) {
+                lblMensaje.setText("⚠️ Por favor, selecciona origen y destino antes de iniciar el viaje");
+                lblMensaje.setTextFill(Color.web("#FF5722"));
+                opcionesViajeContainer.setVisible(false);
+                return;
+            }
+
+            // Limpiar campos de texto
+            txtOrigen.clear();
+            txtDestino.clear();
+            listOrigen.setVisible(false);
+            listDestino.setVisible(false);
+
+            // Mostrar mensaje de carga
+            lblMensaje.setText("⏳ Calculando ruta, por favor espera...");
+            lblMensaje.setTextFill(Color.web("#2196F3"));
+            opcionesViajeContainer.setVisible(false);
+
+            // Calcular ruta
+            calcularYMostrarOpciones(lblMensaje, opcionesViajeContainer, root, lblBienvenida, lblEmail, origenContainer, destinoContainer, btnIniciarViaje, btnCerrarSesion);
         });
 
         root.getChildren().addAll(
@@ -479,22 +490,33 @@ public class MainApp extends Application {
     // ========================================
     // CALCULAR RUTA Y MOSTRAR OPCIONES DE VIAJE
     // ========================================
-    private void calcularYMostrarOpciones(Label lblMensaje, VBox opcionesContainer) {
+    private void calcularYMostrarOpciones(Label lblMensaje, VBox opcionesContainer, VBox root,
+                                          Label lblBienvenida, Label lblEmail,
+                                          VBox origenContainer, VBox destinoContainer,
+                                          Button btnIniciarViaje, Button btnCerrarSesion) {
         new Thread(() -> {
             try {
                 Ruta ruta = distanceCalculator.calculateRoute(origenSeleccionado, destinoSeleccionado);
 
                 Platform.runLater(() -> {
-                    lblMensaje.setText("✅ Ruta calculada exitosamente\n📍 Distancia: " + ruta.distanciaTexto() + " | ⏱️ Tiempo: " + ruta.tiempoTexto());
-                    lblMensaje.setStyle("-fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+                    // Limpiar la pantalla y reorganizar
+                    root.getChildren().clear();
 
+                    // Agregar solo los elementos necesarios en el nuevo orden
+                    root.getChildren().addAll(
+                            opcionesContainer,
+                            btnCerrarSesion
+                    );
+
+                    // Mostrar las opciones de viaje
                     mostrarOpcionesViajeEnPantalla(ruta, opcionesContainer, lblMensaje);
                 });
 
             } catch (Exception e) {
                 Platform.runLater(() -> {
                     lblMensaje.setText("❌ Error: No se pudo calcular la ruta\n" + e.getMessage());
-                    lblMensaje.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    lblMensaje.setTextFill(Color.RED);
+                    lblMensaje.setVisible(true);
                     opcionesContainer.setVisible(false);
                 });
             }
@@ -507,8 +529,18 @@ public class MainApp extends Application {
     private void mostrarOpcionesViajeEnPantalla(Ruta ruta, VBox opcionesContainer, Label lblMensaje) {
         opcionesContainer.getChildren().clear();
 
+        // Crear un nuevo label para distancia y tiempo (sin bindings)
+        Label lblInfoRuta = new Label("📍 Distancia: " + ruta.distanciaTexto() + " | ⏱️ Tiempo: " + ruta.tiempoTexto());
+        lblInfoRuta.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #4CAF50;");
+        lblInfoRuta.setWrapText(true);
+        lblInfoRuta.setMaxWidth(600);
+        lblInfoRuta.setAlignment(Pos.CENTER);
+
+        // Ocultar el mensaje de carga original
+        lblMensaje.setVisible(false);
+
         Label titulo = new Label("Elige tu tipo de viaje:");
-        titulo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        titulo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 20 0 15 0;");
 
         // Botones para cada tipo de viaje
         Button btnEstandar = crearBotonViajeInline("🚗 Estándar", ruta.tiempoTexto(), "#4CAF50");
@@ -528,7 +560,40 @@ public class MainApp extends Application {
             confirmarViajeEnPantalla(ruta, TipoViaje.Lujo, lblMensaje, opcionesContainer);
         });
 
-        opcionesContainer.getChildren().addAll(titulo, btnEstandar, btnXL, btnLujo);
+        // ===== MINIMAPA CON EL RECORRIDO USANDO IFRAME =====
+        Label lblMapa = new Label("📍 Visualización del recorrido:");
+        lblMapa.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 20 0 10 0;");
+
+        javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
+        webView.setPrefHeight(400);
+        webView.setPrefWidth(650);
+
+        // Generar HTML con iframe que carga el mapa de Google Maps
+        String htmlContent = generarHTMLMapaConIframe(ruta.linkMapa());
+        webView.getEngine().loadContent(htmlContent);
+
+        // Botón para abrir mapa en navegador
+        Button btnVerMapaCompleto = new Button("🗺️ Ver mapa completo en navegador");
+        btnVerMapaCompleto.setStyle(
+                "-fx-font-size: 13px; " +
+                        "-fx-padding: 10 20; " +
+                        "-fx-background-color: #2196F3; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-background-radius: 5; " +
+                        "-fx-font-weight: bold;"
+        );
+        btnVerMapaCompleto.setOnAction(e -> abrirMapaEnNavegador(ruta.linkMapa()));
+
+        opcionesContainer.getChildren().addAll(
+                lblInfoRuta,
+                titulo,
+                btnEstandar,
+                btnXL,
+                btnLujo,
+                lblMapa,
+                webView,
+                btnVerMapaCompleto
+        );
         opcionesContainer.setVisible(true);
     }
 
@@ -557,7 +622,7 @@ public class MainApp extends Application {
 
         if (conductor == null) {
             lblMensaje.setText("❌ Error: No hay conductores disponibles en este momento");
-            lblMensaje.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+            lblMensaje.setTextFill(Color.RED);
             opcionesContainer.setVisible(false);
             return;
         }
@@ -578,7 +643,8 @@ public class MainApp extends Application {
                         "Distancia: " + ruta.distanciaTexto() + " | Tiempo: " + ruta.tiempoTexto() + "\n" +
                         "¡Buen viaje! 🚗"
         );
-        lblMensaje.setStyle("-fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+        lblMensaje.setTextFill(Color.web("#4CAF50"));
+        lblMensaje.setVisible(true);
 
         // Ocultar opciones
         opcionesContainer.setVisible(false);
@@ -596,6 +662,81 @@ public class MainApp extends Application {
                 ex.printStackTrace();
             }
         }).start();
+    }
+
+    // ========================================
+    // GENERAR HTML CON IFRAME DEL MAPA
+    // ========================================
+    private String generarHTMLMapaConIframe(String linkMapa) {
+        // Convertir el link de direcciones a un embed de Google Maps
+        String embedUrl;
+
+        // Si el link contiene "/dir/", lo convertimos a formato embed
+        if (linkMapa.contains("/dir/")) {
+            // Extraer las direcciones del link
+            String[] parts = linkMapa.split("/dir/");
+            if (parts.length > 1) {
+                String[] locations = parts[1].split("/");
+                if (locations.length >= 2) {
+                    String origen = locations[0];
+                    String destino = locations[1];
+
+                    // Usar Google Maps Embed API con tu API key
+                    try {
+                        embedUrl = "https://www.google.com/maps/embed/v1/directions?key=AIzaSyB6uynr_3ELge4l5JrkDNGh3JYs-zO53DI"
+                                + "&origin=" + java.net.URLEncoder.encode(origen, java.nio.charset.StandardCharsets.UTF_8)
+                                + "&destination=" + java.net.URLEncoder.encode(destino, java.nio.charset.StandardCharsets.UTF_8)
+                                + "&mode=driving";
+                    } catch (Exception e) {
+                        embedUrl = linkMapa;
+                    }
+                } else {
+                    embedUrl = linkMapa;
+                }
+            } else {
+                embedUrl = linkMapa;
+            }
+        } else {
+            embedUrl = linkMapa;
+        }
+
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        overflow: hidden;
+                        background-color: #f0f0f0;
+                    }
+                    iframe {
+                        width: 100%%;
+                        height: 100%%;
+                        border: none;
+                        border-radius: 8px;
+                    }
+                </style>
+            </head>
+            <body>
+                <iframe src="%s" allowfullscreen loading="lazy"></iframe>
+            </body>
+            </html>
+            """.formatted(embedUrl);
+    }
+
+    // ========================================
+    // ABRIR MAPA EN NAVEGADOR EXTERNO
+    // ========================================
+    private void abrirMapaEnNavegador(String linkMapa) {
+        try {
+            java.awt.Desktop.getDesktop().browse(new java.net.URI(linkMapa));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error al abrir el navegador: " + e.getMessage());
+        }
     }
 
     @Override
