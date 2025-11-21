@@ -1,170 +1,127 @@
 package Main;
 
-import Viajes.*;
-import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
+import Viajes.Viaje;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
-import java.io.*;
-import java.lang.reflect.Type;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class Sistema {
 
-    private static final String ARCHIVO_CONDUCTORES = "conductores.json";
     private static final String ARCHIVO_VIAJES = "viajes.json";
 
-    private List<Conductor> conductores;
+    // DEPENDENCIAS
+    private GestorUsuarios gestorUsuarios;
     private List<Viaje> viajes;
-    private Gson gson;
+    private ObjectMapper objectMapper;
 
-    public Sistema() {
-        // Configurar Gson con adaptador personalizado para Viaje
-        this.gson = new GsonBuilder()
-                .setPrettyPrinting()
-                .registerTypeAdapter(Viaje.class, new ViajeTypeAdapter())
-                .create();
+    // CONSTRUCTOR
+    public Sistema(GestorUsuarios gestorUsuarios) {
+        this.gestorUsuarios = gestorUsuarios;
+        this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-        this.conductores = cargarConductores();
         this.viajes = cargarViajes();
-
-        // Crear conductor por defecto si no existe
-        if (conductores.isEmpty()) {
-            crearConductorPorDefecto();
-        }
     }
 
     // ========================================
-    // ADAPTADOR PERSONALIZADO PARA VIAJE
+    // FACHADA DE LOGIN (CLAVE PARA EL DESACOPLAMIENTO)
     // ========================================
-    private static class ViajeTypeAdapter implements JsonSerializer<Viaje>, JsonDeserializer<Viaje> {
+    /**
+     * Intenta iniciar sesión y ejecuta la lógica de negocio (como activar
+     * al conductor).
+     * @param email Email del usuario a loguear.
+     * @return Instrucción de navegación limpia para el Frontend.
+     */
+    public ResultadoLogin iniciarSesionYActivar(String email) {
+        var resultadoBusqueda = gestorUsuarios.iniciarSesion(email);
 
-        @Override
-        public JsonElement serialize(Viaje viaje, Type type, JsonSerializationContext context) {
-            JsonObject jsonObject = new JsonObject();
-
-            // Guardar el tipo de viaje
-            jsonObject.addProperty("tipo", viaje.tipo().name());
-
-            // Serializar el objeto completo
-            jsonObject.add("data", context.serialize(viaje));
-
-            return jsonObject;
+        if (resultadoBusqueda.isEmpty()) {
+            return ResultadoLogin.USUARIO_NO_ENCONTRADO;
         }
 
-        @Override
-        public Viaje deserialize(JsonElement json, Type type, JsonDeserializationContext context) throws JsonParseException {
-            JsonObject jsonObject = json.getAsJsonObject();
-            String tipoStr = jsonObject.get("tipo").getAsString();
-            JsonElement data = jsonObject.get("data");
+        Usuario usuario = resultadoBusqueda.get();
 
-            // Deserializar según el tipo
-            return switch (TipoViaje.valueOf(tipoStr)) {
-                case Estandar -> context.deserialize(data, ViajeEstandar.class);
-                case XL -> context.deserialize(data, ViajeXL.class);
-                case Lujo -> context.deserialize(data, ViajeLujo.class);
-            };
+        // 🔑 Lógica de negocio encapsulada
+        if (usuario instanceof Conductor conductor) {
+            activarConductor(conductor); // Activa y persiste
+            return ResultadoLogin.CONDUCTOR_LOGUEADO;
         }
+
+        if (usuario instanceof Cliente) {
+            return ResultadoLogin.CLIENTE_LOGUEADO;
+        }
+
+        return ResultadoLogin.ERROR_GENERAL;
     }
 
     // ========================================
-    // CREAR CONDUCTOR POR DEFECTO
+    // FACHADA: LÓGICA DE NEGOCIO DEL CONDUCTOR
     // ========================================
-    private void crearConductorPorDefecto() {
-        Conductor conductorDefault = new Conductor("Juan Pérez", "juan.perez@gmail.com", true);
-        conductores.add(conductorDefault);
-        guardarConductores();
-        System.out.println("✅ Conductor por defecto creado: " + conductorDefault.nombre());
+
+    // Activa el conductor y persiste el estado
+    public void activarConductor(Conductor conductor) {
+        if (conductor != null) {
+            conductor.setDisponible(true);
+            gestorUsuarios.guardarUsuarios(); // Persistencia
+        }
+    }
+
+    // Desactiva el conductor y persiste el estado
+    public void desactivarConductor(Conductor conductor) {
+        if (conductor != null) {
+            conductor.setDisponible(false);
+            gestorUsuarios.guardarUsuarios(); // Persistencia
+        }
     }
 
     // ========================================
     // OBTENER CONDUCTOR DISPONIBLE
     // ========================================
     public Conductor obtenerConductorDisponible() {
-        return conductores.stream()
-                .filter(Conductor::disponible)
-                .findFirst()
-                .orElse(null);
+        List<Conductor> disponibles = gestorUsuarios.obtenerConductoresDisponibles();
+
+        if (disponibles.isEmpty()) {
+            return null;
+        }
+
+        // Simular la selección de un conductor al azar
+        Random random = new Random();
+        return disponibles.get(random.nextInt(disponibles.size()));
     }
 
     // ========================================
-    // AGREGAR VIAJE
+    // GESTIÓN DE VIAJES
     // ========================================
     public void agregarViaje(Viaje viaje) {
         viajes.add(viaje);
         guardarViajes();
     }
 
-    // ========================================
-    // GUARDAR CONDUCTORES EN JSON
-    // ========================================
-    private void guardarConductores() {
-        try (FileWriter writer = new FileWriter(ARCHIVO_CONDUCTORES)) {
-            gson.toJson(conductores, writer);
-        } catch (IOException e) {
-            System.err.println("Error al guardar conductores: " + e.getMessage());
-        }
-    }
-
-    // ========================================
-    // CARGAR CONDUCTORES DESDE JSON
-    // ========================================
-    private List<Conductor> cargarConductores() {
-        File archivo = new File(ARCHIVO_CONDUCTORES);
-
-        if (!archivo.exists()) {
-            return new ArrayList<>();
-        }
-
-        try (FileReader reader = new FileReader(ARCHIVO_CONDUCTORES)) {
-            Type listType = new TypeToken<ArrayList<Conductor>>(){}.getType();
-            List<Conductor> conductoresCargados = gson.fromJson(reader, listType);
-            return conductoresCargados != null ? conductoresCargados : new ArrayList<>();
-        } catch (IOException e) {
-            System.err.println("Error al cargar conductores: " + e.getMessage());
-            return new ArrayList<>();
-        }
-    }
-
-    // ========================================
-    // GUARDAR VIAJES EN JSON
-    // ========================================
     private void guardarViajes() {
-        try (FileWriter writer = new FileWriter(ARCHIVO_VIAJES)) {
-            gson.toJson(viajes, writer);
+        try {
+            objectMapper.writeValue(new File(ARCHIVO_VIAJES), viajes);
         } catch (IOException e) {
             System.err.println("Error al guardar viajes: " + e.getMessage());
         }
     }
 
-    // ========================================
-    // CARGAR VIAJES DESDE JSON
-    // ========================================
     private List<Viaje> cargarViajes() {
         File archivo = new File(ARCHIVO_VIAJES);
 
-        if (!archivo.exists()) {
+        if (!archivo.exists() || archivo.length() == 0) {
             return new ArrayList<>();
         }
 
-        try (FileReader reader = new FileReader(ARCHIVO_VIAJES)) {
-            Type listType = new TypeToken<ArrayList<Viaje>>(){}.getType();
-            List<Viaje> viajesCargados = gson.fromJson(reader, listType);
-            return viajesCargados != null ? viajesCargados : new ArrayList<>();
+        try {
+            return objectMapper.readValue(archivo, new TypeReference<List<Viaje>>() {});
         } catch (IOException e) {
             System.err.println("Error al cargar viajes: " + e.getMessage());
             return new ArrayList<>();
         }
-    }
-
-    // ========================================
-    // GETTERS
-    // ========================================
-    public List<Conductor> getConductores() {
-        return new ArrayList<>(conductores);
-    }
-
-    public List<Viaje> getViajes() {
-        return new ArrayList<>(viajes);
     }
 }

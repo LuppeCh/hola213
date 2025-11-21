@@ -1,11 +1,9 @@
 package Main;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import java.io.*;
-import java.lang.reflect.Type;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -14,92 +12,108 @@ import java.util.regex.Pattern;
 public class GestorUsuarios {
 
     private static final String ARCHIVO_USUARIOS = "usuarios.json";
-    private List<Cliente> clientes;
-    private Gson gson;
+    private final List<Usuario> usuarios;
+    private final ObjectMapper objectMapper;
+
+    // Patrón de email (ej. ejemplo@gmail.com)
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@gmail\\.com$");
 
     public GestorUsuarios() {
-        this.gson = new GsonBuilder().setPrettyPrinting().create();
-        this.clientes = cargarUsuarios();
+        this.objectMapper = new ObjectMapper();
+        // 🔑 Configurar Jackson para manejar subclases (Cliente, Conductor)
+        this.objectMapper.registerSubtypes(Cliente.class, Conductor.class);
+        this.usuarios = cargarUsuarios();
     }
 
     // ========================================
-    // VALIDACIÓN DE EMAIL CON PATTERN MATCHING
+    // PERSISTENCIA
     // ========================================
-    public boolean validarEmail(String email) {
-        Pattern patron = Pattern.compile("^[A-Za-z0-9+_.-]+@gmail\\.com$");
-        return patron.matcher(email).matches();
+
+    // 🔑 CORRECCIÓN: CAMBIADO A PUBLIC para que MainApp pueda guardar el estado del Conductor
+    public void guardarUsuarios() {
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(ARCHIVO_USUARIOS), usuarios);
+        } catch (IOException e) {
+            System.err.println("Error al guardar usuarios: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private List<Usuario> cargarUsuarios() {
+        File file = new File(ARCHIVO_USUARIOS);
+        if (file.exists()) {
+            try {
+                return objectMapper.readValue(file, new TypeReference<List<Usuario>>() {});
+            } catch (IOException e) {
+                System.err.println("Error al cargar usuarios, iniciando lista vacía: " + e.getMessage());
+                return new ArrayList<>();
+            }
+        }
+        return new ArrayList<>();
     }
 
     // ========================================
-    // REGISTRAR NUEVO CLIENTE
+    // REGISTRO
     // ========================================
+
     public boolean registrarCliente(String nombre, String email) {
-        if (!validarEmail(email)) {
-            return false;
-        }
-
-        if (buscarClientePorEmail(email).isPresent()) {
-            return false;
-        }
+        if (!validarEmail(email)) return false;
+        if (buscarUsuarioPorEmail(email).isPresent()) return false;
 
         Cliente nuevoCliente = new Cliente(nombre, email);
-        clientes.add(nuevoCliente);
+        usuarios.add(nuevoCliente);
         guardarUsuarios();
+        return true;
+    }
 
+    // 🔑 NUEVO MÉTODO: REGISTRO DE CONDUCTOR
+    public boolean registrarConductor(String nombre, String email) {
+        if (!validarEmail(email)) return false;
+        if (buscarUsuarioPorEmail(email).isPresent()) return false;
+
+        // El constructor de 2 argumentos de Conductor inicializa disponible = false
+        Conductor nuevoConductor = new Conductor(nombre, email);
+        usuarios.add(nuevoConductor);
+        guardarUsuarios();
         return true;
     }
 
     // ========================================
-    // INICIAR SESIÓN
+    // INICIO DE SESIÓN Y BÚSQUEDA
     // ========================================
-    public Optional<Cliente> iniciarSesion(String email) {
-        return buscarClientePorEmail(email);
+
+    // 🔑 CORRECCIÓN: Devuelve el tipo base Optional<Usuario> para manejar Cliente y Conductor
+    public Optional<Usuario> iniciarSesion(String email) {
+        return buscarUsuarioPorEmail(email);
     }
 
-    // ========================================
-    // BUSCAR CLIENTE POR EMAIL
-    // ========================================
-    private Optional<Cliente> buscarClientePorEmail(String email) {
-        return clientes.stream()
-                .filter(cliente -> cliente.email().equalsIgnoreCase(email))
+    private Optional<Usuario> buscarUsuarioPorEmail(String email) {
+        return usuarios.stream()
+                .filter(u -> u.email().equalsIgnoreCase(email))
                 .findFirst();
     }
 
     // ========================================
-    // GUARDAR EN JSON
+    // UTILIDADES
     // ========================================
-    private void guardarUsuarios() {
-        try (FileWriter writer = new FileWriter(ARCHIVO_USUARIOS)) {
-            gson.toJson(clientes, writer);
-        } catch (IOException e) {
-            System.err.println("Error al guardar usuarios: " + e.getMessage());
-        }
-    }
 
-    // ========================================
-    // CARGAR DESDE JSON
-    // ========================================
-    private List<Cliente> cargarUsuarios() {
-        File archivo = new File(ARCHIVO_USUARIOS);
-
-        if (!archivo.exists()) {
-            return new ArrayList<>();
-        }
-
-        try (FileReader reader = new FileReader(ARCHIVO_USUARIOS)) {
-            Type listType = new TypeToken<ArrayList<Cliente>>(){}.getType();
-            List<Cliente> clientesCargados = gson.fromJson(reader, listType);
-            return clientesCargados != null ? clientesCargados : new ArrayList<>();
-        } catch (IOException e) {
-            System.err.println("Error al cargar usuarios: " + e.getMessage());
-            return new ArrayList<>();
-        }
-    }
-
-    // ========================================
-    // OBTENER TODOS LOS CLIENTES
-    // ========================================
     public List<Cliente> obtenerTodosLosClientes() {
-        return new ArrayList<>(clientes);
+        return usuarios.stream()
+                .filter(usuario -> usuario instanceof Cliente)
+                .map(usuario -> (Cliente) usuario)
+                .toList();
+    }
+
+    // 🔑 NUEVO MÉTODO: OBTENER TODOS LOS CONDUCTORES DISPONIBLES
+    public List<Conductor> obtenerConductoresDisponibles() {
+        return usuarios.stream()
+                .filter(usuario -> usuario instanceof Conductor)
+                .map(usuario -> (Conductor) usuario)
+                .filter(Conductor::isDisponible)
+                .toList();
+    }
+
+    private boolean validarEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 }

@@ -20,6 +20,7 @@ public class MainApp extends Application {
     private Cliente clienteActual;
     private GooglePlacesService placesService;
     private DistanceCalculator distanceCalculator;
+    private Conductor conductorActual;
 
     private String origenSeleccionado = null;
     private String destinoSeleccionado = null;
@@ -27,8 +28,9 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         this.stage = primaryStage;
+        this.stage = primaryStage;
         this.gestorUsuarios = new GestorUsuarios();
-        this.sistema = new Sistema();
+        this.sistema = new Sistema(gestorUsuarios);
         this.placesService = new GooglePlacesService("AIzaSyB6uynr_3ELge4l5JrkDNGh3JYs-zO53DI");
         this.distanceCalculator = new DistanceCalculator();
 
@@ -71,6 +73,9 @@ public class MainApp extends Application {
     // ========================================
     // PANTALLA 2: LOGIN / REGISTRO
     // ========================================
+    // ========================================
+// PANTALLA 2: LOGIN / REGISTRO
+// ========================================
     private void mostrarPantallaLoginRegistro() {
         VBox root = new VBox();
         root.setAlignment(Pos.CENTER);
@@ -94,7 +99,8 @@ public class MainApp extends Application {
                 "-fx-font-size: ", stage.widthProperty().divide(45), "px; ",
                 "-fx-padding: ", stage.heightProperty().divide(60), " ", stage.widthProperty().divide(15), ";"
         ));
-        btnRegistrarse.setOnAction(e -> mostrarPantallaRegistro());
+        // 🔑 CAMBIO: Redirigir a la selección de rol
+        btnRegistrarse.setOnAction(e -> mostrarPantallaSeleccionTipoRegistro());
 
         root.getChildren().addAll(lblTitulo, btnIniciarSesion, btnRegistrarse);
         root.setStyle("-fx-background-color: linear-gradient(to bottom, #f093fb 0%, #f5576c 100%);");
@@ -104,15 +110,52 @@ public class MainApp extends Application {
     }
 
     // ========================================
-    // PANTALLA 3: REGISTRO
+// PANTALLA 3 (NUEVA): SELECCIÓN DE TIPO DE REGISTRO
+// ========================================
+    private void mostrarPantallaSeleccionTipoRegistro() {
+        VBox root = new VBox(20);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(50));
+        root.setStyle("-fx-background-color: linear-gradient(to bottom, #a18cd1 0%, #fbc2eb 100%);");
+
+        Label lblTitulo = new Label("Elige tu rol");
+        lblTitulo.styleProperty().bind(Bindings.concat(
+                "-fx-font-size: ", stage.widthProperty().divide(30), "px; -fx-font-weight: bold; -fx-text-fill: white;"
+        ));
+
+        Button btnCliente = new Button("👤 Cliente (Necesito un viaje)");
+        btnCliente.setPrefWidth(300);
+        btnCliente.setStyle("-fx-font-size: 18px; -fx-padding: 10 20; -fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-radius: 5;");
+        // Redirige a la pantalla de registro, pasando TRUE (es Cliente)
+        btnCliente.setOnAction(e -> mostrarPantallaRegistro(true));
+
+        Button btnConductor = new Button("🚗 Conductor (Quiero trabajar)");
+        btnConductor.setPrefWidth(300);
+        btnConductor.setStyle("-fx-font-size: 18px; -fx-padding: 10 20; -fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-radius: 5;");
+        // Redirige a la pantalla de registro, pasando FALSE (es Conductor)
+        btnConductor.setOnAction(e -> mostrarPantallaRegistro(false));
+
+        Button btnVolver = new Button("← Volver");
+        btnVolver.setStyle("-fx-font-size: 14px;");
+        btnVolver.setOnAction(e -> mostrarPantallaLoginRegistro());
+
+
+        root.getChildren().addAll(lblTitulo, btnCliente, btnConductor, btnVolver);
+        stage.setScene(new Scene(root));
+    }
+
     // ========================================
-    private void mostrarPantallaRegistro() {
+// PANTALLA 4: REGISTRO (UNIFICADA)
+// ========================================
+    private void mostrarPantallaRegistro(boolean esCliente) {
         VBox root = new VBox();
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(50));
         root.spacingProperty().bind(stage.heightProperty().divide(35));
 
-        Label lblTitulo = new Label("Registro de Usuario");
+        // Título dinámico
+        String tituloTexto = esCliente ? "Registro de Cliente" : "Registro de Conductor";
+        Label lblTitulo = new Label(tituloTexto);
         lblTitulo.styleProperty().bind(Bindings.concat(
                 "-fx-font-size: ", stage.widthProperty().divide(35), "px; -fx-font-weight: bold;"
         ));
@@ -154,6 +197,8 @@ public class MainApp extends Application {
                 "-fx-font-size: ", stage.widthProperty().divide(55), "px; ",
                 "-fx-padding: ", stage.heightProperty().divide(70), " ", stage.widthProperty().divide(25), ";"
         ));
+
+        // 🔑 LÓGICA DE REGISTRO CONDICIONAL
         btnRegistrar.setOnAction(e -> {
             String nombre = txtNombre.getText().trim();
             String email = txtEmail.getText().trim();
@@ -164,7 +209,15 @@ public class MainApp extends Application {
                 return;
             }
 
-            if (gestorUsuarios.registrarCliente(nombre, email)) {
+            boolean registroExitoso;
+
+            if (esCliente) {
+                registroExitoso = gestorUsuarios.registrarCliente(nombre, email);
+            } else {
+                registroExitoso = gestorUsuarios.registrarConductor(nombre, email);
+            }
+
+            if (registroExitoso) {
                 lblMensaje.setText("✅ Registro exitoso! Ahora puedes iniciar sesión");
                 lblMensaje.setTextFill(Color.GREEN);
                 txtNombre.clear();
@@ -179,7 +232,8 @@ public class MainApp extends Application {
         btnVolver.styleProperty().bind(Bindings.concat(
                 "-fx-font-size: ", stage.widthProperty().divide(70), "px;"
         ));
-        btnVolver.setOnAction(e -> mostrarPantallaLoginRegistro());
+        // Vuelve a la selección de tipo de usuario
+        btnVolver.setOnAction(e -> mostrarPantallaSeleccionTipoRegistro());
 
         root.getChildren().addAll(
                 lblTitulo,
@@ -197,8 +251,8 @@ public class MainApp extends Application {
     }
 
     // ========================================
-    // PANTALLA 4: LOGIN
-    // ========================================
+// PANTALLA 5: LOGIN
+// ========================================
     private void mostrarPantallaLogin() {
         VBox root = new VBox();
         root.setAlignment(Pos.CENTER);
@@ -234,6 +288,8 @@ public class MainApp extends Application {
                 "-fx-font-size: ", stage.widthProperty().divide(55), "px; ",
                 "-fx-padding: ", stage.heightProperty().divide(70), " ", stage.widthProperty().divide(25), ";"
         ));
+
+        // 🔑 LÓGICA DE INICIO DE SESIÓN CONDICIONAL
         btnLogin.setOnAction(e -> {
             String email = txtEmail.getText().trim();
 
@@ -243,11 +299,34 @@ public class MainApp extends Application {
                 return;
             }
 
+            // Asumiendo que gestorUsuarios.iniciarSesion devuelve Optional<Usuario>
             var resultado = gestorUsuarios.iniciarSesion(email);
 
             if (resultado.isPresent()) {
-                clienteActual = resultado.get();
-                mostrarPantallaBienvenida();
+                Usuario usuario = resultado.get();
+
+                // Caso 1: Es un Cliente
+                if (usuario instanceof Cliente) {
+                    clienteActual = (Cliente) usuario;
+                    conductorActual = null; // Limpiar conductor
+                    mostrarPantallaBienvenida();
+
+                    // Caso 2: Es un Conductor
+                } else if (usuario instanceof Conductor) {
+                    conductorActual = (Conductor) usuario;
+                    clienteActual = null; // Limpiar cliente
+
+                    // 🟢 ACTIVAR DISPONIBILIDAD y GUARDAR
+                    conductorActual.setDisponible(true);
+                    gestorUsuarios.guardarUsuarios();
+
+                    // ➡️ Redirigir al dashboard del Conductor (pendiente de crear)
+                    mostrarPantallaConductorDashboard();
+
+                } else {
+                    lblMensaje.setText("❌ Tipo de usuario no reconocido.");
+                    lblMensaje.setTextFill(Color.RED);
+                }
             } else {
                 lblMensaje.setText("❌ Usuario no encontrado");
                 lblMensaje.setTextFill(Color.RED);
@@ -258,6 +337,7 @@ public class MainApp extends Application {
         btnVolver.styleProperty().bind(Bindings.concat(
                 "-fx-font-size: ", stage.widthProperty().divide(70), "px;"
         ));
+        // Vuelve a la selección de Login/Registro
         btnVolver.setOnAction(e -> mostrarPantallaLoginRegistro());
 
         root.getChildren().addAll(
@@ -275,26 +355,68 @@ public class MainApp extends Application {
     }
 
     // ========================================
+// PANTALLA 6 (NUEVA): DASHBOARD CONDUCTOR
+// ========================================
+    private void mostrarPantallaConductorDashboard() {
+        VBox root = new VBox(20);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(50));
+        root.setStyle("-fx-background-color: linear-gradient(to bottom, #d4fc79 0%, #96e6a1 100%);"); // Fondo verde/lima
+
+        Label lblBienvenida = new Label("Hola Conductor " + conductorActual.nombre());
+        lblBienvenida.setStyle("-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #333;");
+
+        Label lblEstado = new Label("🟢 ¡Estás disponible para viajes!");
+        lblEstado.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #008000;");
+
+        // Placeholder para futuros viajes
+        Label lblInfo = new Label("Esperando solicitudes de viaje...");
+        lblInfo.setStyle("-fx-font-size: 16px; -fx-text-fill: #555; -fx-padding: 10 0 0 0;");
+
+        Button btnCerrarSesion = new Button("Cerrar Sesión y Desconectarse");
+        btnCerrarSesion.setStyle("-fx-font-size: 18px; -fx-padding: 10 30; -fx-background-color: #DC3545; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;");
+
+        // 🔴 DESACTIVAR DISPONIBILIDAD y GUARDAR
+        btnCerrarSesion.setOnAction(e -> {
+            if (conductorActual != null) {
+                conductorActual.setDisponible(false); // <--- Disponibilidad a FALSE
+                gestorUsuarios.guardarUsuarios();    // Guardar el cambio inmediatamente
+                conductorActual = null;              // Limpiar sesión
+            }
+            mostrarPantallaTitulo();
+        });
+
+        root.getChildren().addAll(lblBienvenida, lblEstado, lblInfo, btnCerrarSesion);
+        stage.setScene(new Scene(root));
+    }
+
+
+
+    // ========================================
     // PANTALLA 5: BIENVENIDA CON AUTOCOMPLETADO
     // ========================================
     private void mostrarPantallaBienvenida() {
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        // Usar un color de fondo blanco suave para el ScrollPane
+        scrollPane.setStyle("-fx-background: #F8F9FA; -fx-background-color: #F8F9FA;");
 
         VBox root = new VBox();
         root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(30));
-        root.spacingProperty().bind(stage.heightProperty().divide(40));
+        root.setPadding(new Insets(50, 50, 50, 50)); // Más padding vertical
+        root.spacingProperty().bind(stage.heightProperty().divide(25)); // Aumentar espaciado entre secciones
 
-        Label lblBienvenida = new Label("¡Bienvenido/a " + clienteActual.nombre() + "! 🎉");
+        // 1. ESTILO DE CABECERA (Más limpio)
+        Label lblBienvenida = new Label("¡Bienvenido/a " + clienteActual.nombre() + "!");
+        lblBienvenida.setTextFill(Color.web("#343A40")); // Gris oscuro para profesionalismo
         lblBienvenida.styleProperty().bind(Bindings.concat(
                 "-fx-font-size: ", stage.widthProperty().divide(28), "px; -fx-font-weight: bold;"
         ));
 
         Label lblEmail = new Label("Email: " + clienteActual.email());
+        lblEmail.setTextFill(Color.web("#6C757D")); // Gris claro
         lblEmail.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(50), "px;"
+                "-fx-font-size: ", stage.widthProperty().divide(50), "px; -fx-padding: 0 0 20 0;"
         ));
 
         // Label para mensajes
@@ -307,30 +429,32 @@ public class MainApp extends Application {
                 "-fx-font-weight: bold; -fx-font-size: ", stage.widthProperty().divide(60), "px;"
         ));
 
-        // ===== ORIGEN =====
-        HBox origenBox = new HBox(10);
-        origenBox.setAlignment(Pos.CENTER);
+        // ==============================
+        // CONTENEDORES DE ENTRADA (MÁS LIMPIOS)
+        // ==============================
 
-        Button btnOrigen = new Button("Origen");
-        btnOrigen.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(60), "px; ",
-                "-fx-padding: ", stage.heightProperty().divide(80), " ", stage.widthProperty().divide(40), "; ",
-                "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5;"
-        ));
+        // Contenedor principal de campos (para centrar y limitar ancho)
+        VBox inputContainer = new VBox(25);
+        inputContainer.setAlignment(Pos.CENTER);
+        inputContainer.setMaxWidth(400); // Limitar el ancho de los campos
+
+        // ===== ORIGEN =====
+        Label lblOrigenTitulo = new Label("Origen:");
+        lblOrigenTitulo.setTextFill(Color.web("#343A40"));
+        lblOrigenTitulo.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
 
         TextField txtOrigen = new TextField();
-        txtOrigen.setPromptText("Escribir origen...");
-        txtOrigen.setPrefWidth(300);
-        txtOrigen.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(70), "px;"
-        ));
+        txtOrigen.setPromptText("Escribe tu origen (ej: Avenida del Libertador 100)");
+        txtOrigen.setPrefHeight(40);
+        txtOrigen.setStyle("-fx-font-size: 14px; -fx-border-color: #CED4DA; -fx-border-radius: 5; -fx-background-radius: 5; -fx-border-width: 1px;");
 
         ListView<String> listOrigen = new ListView<>();
         listOrigen.setPrefHeight(0);
         listOrigen.setVisible(false);
         listOrigen.maxWidthProperty().bind(txtOrigen.widthProperty());
+        listOrigen.setStyle("-fx-border-color: #ADB5BD; -fx-border-width: 1px 0 0 0; -fx-background-color: white;");
 
-        // Autocompletado Origen
+        // Autocompletado Origen (Lógica no necesita cambios)
         txtOrigen.textProperty().addListener((obs, old, nuevo) -> {
             if (nuevo.length() >= 3) {
                 new Thread(() -> {
@@ -338,7 +462,7 @@ public class MainApp extends Application {
                         var sugerencias = placesService.autocompletar(nuevo);
                         Platform.runLater(() -> {
                             listOrigen.getItems().setAll(sugerencias);
-                            listOrigen.setPrefHeight(Math.min(sugerencias.size() * 24, 120));
+                            listOrigen.setPrefHeight(Math.min(sugerencias.size() * 30, 150)); // Altura ajustada
                             listOrigen.setVisible(!sugerencias.isEmpty());
                         });
                     } catch (Exception e) {
@@ -348,6 +472,7 @@ public class MainApp extends Application {
             } else {
                 listOrigen.setVisible(false);
             }
+            origenSeleccionado = txtOrigen.getText(); // Actualizar selección al escribir
         });
 
         listOrigen.setOnMouseClicked(event -> {
@@ -360,34 +485,25 @@ public class MainApp extends Application {
             }
         });
 
-        VBox origenContainer = new VBox(5, origenBox, listOrigen);
-        origenContainer.setAlignment(Pos.CENTER);
-        origenBox.getChildren().addAll(btnOrigen, txtOrigen);
+        VBox origenContainer = new VBox(5, lblOrigenTitulo, txtOrigen, listOrigen);
 
         // ===== DESTINO =====
-        HBox destinoBox = new HBox(10);
-        destinoBox.setAlignment(Pos.CENTER);
-
-        Button btnDestino = new Button("Destino");
-        btnDestino.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(60), "px; ",
-                "-fx-padding: ", stage.heightProperty().divide(80), " ", stage.widthProperty().divide(40), "; ",
-                "-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5;"
-        ));
+        Label lblDestinoTitulo = new Label("Destino:");
+        lblDestinoTitulo.setTextFill(Color.web("#343A40"));
+        lblDestinoTitulo.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
 
         TextField txtDestino = new TextField();
-        txtDestino.setPromptText("Escribir destino...");
-        txtDestino.setPrefWidth(300);
-        txtDestino.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(70), "px;"
-        ));
+        txtDestino.setPromptText("Escribe tu destino");
+        txtDestino.setPrefHeight(40);
+        txtDestino.setStyle("-fx-font-size: 14px; -fx-border-color: #CED4DA; -fx-border-radius: 5; -fx-background-radius: 5; -fx-border-width: 1px;");
 
         ListView<String> listDestino = new ListView<>();
         listDestino.setPrefHeight(0);
         listDestino.setVisible(false);
         listDestino.maxWidthProperty().bind(txtDestino.widthProperty());
+        listDestino.setStyle("-fx-border-color: #ADB5BD; -fx-border-width: 1px 0 0 0; -fx-background-color: white;");
 
-        // Autocompletado Destino
+        // Autocompletado Destino (Lógica no necesita cambios)
         txtDestino.textProperty().addListener((obs, old, nuevo) -> {
             if (nuevo.length() >= 3) {
                 new Thread(() -> {
@@ -395,7 +511,7 @@ public class MainApp extends Application {
                         var sugerencias = placesService.autocompletar(nuevo);
                         Platform.runLater(() -> {
                             listDestino.getItems().setAll(sugerencias);
-                            listDestino.setPrefHeight(Math.min(sugerencias.size() * 24, 120));
+                            listDestino.setPrefHeight(Math.min(sugerencias.size() * 30, 150));
                             listDestino.setVisible(!sugerencias.isEmpty());
                         });
                     } catch (Exception e) {
@@ -405,6 +521,7 @@ public class MainApp extends Application {
             } else {
                 listDestino.setVisible(false);
             }
+            destinoSeleccionado = txtDestino.getText(); // Actualizar selección al escribir
         });
 
         listDestino.setOnMouseClicked(event -> {
@@ -417,29 +534,37 @@ public class MainApp extends Application {
             }
         });
 
-        VBox destinoContainer = new VBox(5, destinoBox, listDestino);
-        destinoContainer.setAlignment(Pos.CENTER);
-        destinoBox.getChildren().addAll(btnDestino, txtDestino);
+        VBox destinoContainer = new VBox(5, lblDestinoTitulo, txtDestino, listDestino);
+
+        inputContainer.getChildren().addAll(origenContainer, destinoContainer);
 
         // Contenedor para opciones de viaje (inicialmente vacío)
         VBox opcionesViajeContainer = new VBox(15);
         opcionesViajeContainer.setAlignment(Pos.CENTER);
         opcionesViajeContainer.setVisible(false);
 
-        // ===== BOTÓN INICIAR VIAJE =====
+        // ===== BOTÓN INICIAR VIAJE (REDESIGN) =====
         Button btnIniciarViaje = new Button("Iniciar Viaje");
-        btnIniciarViaje.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(50), "px; ",
-                "-fx-padding: ", stage.heightProperty().divide(60), " ", stage.widthProperty().divide(25), "; ",
-                "-fx-background-color: #FF5722; -fx-text-fill: white; -fx-background-radius: 5; -fx-font-weight: bold;"
-        ));
+        // Color primario de Uber (Negro o Azul Oscuro)
+        btnIniciarViaje.setStyle(
+                "-fx-font-size: 20px; " +
+                        "-fx-padding: 15 40; " +
+                        "-fx-background-color: #007BFF; " + // Azul Limpio
+                        "-fx-text-fill: white; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-font-weight: bold;"
+        );
+        btnIniciarViaje.setPrefWidth(300); // Ancho fijo para centrar mejor
 
-        // ===== BOTÓN CERRAR SESIÓN =====
+        // ===== BOTÓN CERRAR SESIÓN (REDESIGN) =====
         Button btnCerrarSesion = new Button("Cerrar Sesión");
-        btnCerrarSesion.styleProperty().bind(Bindings.concat(
-                "-fx-font-size: ", stage.widthProperty().divide(60), "px; ",
-                "-fx-padding: ", stage.heightProperty().divide(80), " ", stage.widthProperty().divide(40), ";"
-        ));
+        btnCerrarSesion.setStyle(
+                "-fx-font-size: 14px; " +
+                        "-fx-padding: 10 25; " +
+                        "-fx-background-color: #6C757D; " + // Gris neutro
+                        "-fx-text-fill: white; " +
+                        "-fx-background-radius: 5;"
+        );
         btnCerrarSesion.setOnAction(e -> {
             clienteActual = null;
             origenSeleccionado = null;
@@ -448,9 +573,9 @@ public class MainApp extends Application {
         });
 
         btnIniciarViaje.setOnAction(e -> {
-            if (origenSeleccionado == null || destinoSeleccionado == null) {
+            if (origenSeleccionado == null || destinoSeleccionado == null || origenSeleccionado.isEmpty() || destinoSeleccionado.isEmpty()) {
                 lblMensaje.setText("⚠️ Por favor, selecciona origen y destino antes de iniciar el viaje");
-                lblMensaje.setTextFill(Color.web("#FF5722"));
+                lblMensaje.setTextFill(Color.web("#DC3545")); // Rojo de error
                 opcionesViajeContainer.setVisible(false);
                 return;
             }
@@ -463,66 +588,80 @@ public class MainApp extends Application {
 
             // Mostrar mensaje de carga
             lblMensaje.setText("⏳ Calculando ruta, por favor espera...");
-            lblMensaje.setTextFill(Color.web("#2196F3"));
+            lblMensaje.setTextFill(Color.web("#007BFF")); // Azul de carga
             opcionesViajeContainer.setVisible(false);
 
             // Calcular ruta
             calcularYMostrarOpciones(lblMensaje, opcionesViajeContainer, root, lblBienvenida, lblEmail, origenContainer, destinoContainer, btnIniciarViaje, btnCerrarSesion);
         });
 
+        // Contenedor para los botones inferiores
+        VBox bottomButtons = new VBox(10, btnIniciarViaje, btnCerrarSesion);
+        bottomButtons.setAlignment(Pos.CENTER);
+
         root.getChildren().addAll(
                 lblBienvenida,
                 lblEmail,
                 lblMensaje,
-                origenContainer,
-                destinoContainer,
-                btnIniciarViaje,
-                opcionesViajeContainer,
-                btnCerrarSesion
+                inputContainer,
+                bottomButtons,
+                opcionesViajeContainer // Mantener al final para que aparezca después de los inputs
         );
-        root.setStyle("-fx-background-color: linear-gradient(to bottom, #a1c4fd 0%, #c2e9fb 100%);");
+
+        // Fondo blanco limpio
+        root.setStyle("-fx-background-color: #FFFFFF;");
 
         scrollPane.setContent(root);
         Scene scene = new Scene(scrollPane);
         stage.setScene(scene);
     }
-
     // ========================================
-    // CALCULAR RUTA Y MOSTRAR OPCIONES DE VIAJE
-    // ========================================
+// CALCULAR RUTA Y MOSTRAR OPCIONES DE VIAJE
+// ========================================
     private void calcularYMostrarOpciones(Label lblMensaje, VBox opcionesContainer, VBox root,
                                           Label lblBienvenida, Label lblEmail,
                                           VBox origenContainer, VBox destinoContainer,
                                           Button btnIniciarViaje, Button btnCerrarSesion) {
         new Thread(() -> {
             try {
+                // Asegúrate de que Ruta sea una clase que soporta Jackson (como se discutió previamente)
                 Ruta ruta = distanceCalculator.calculateRoute(origenSeleccionado, destinoSeleccionado);
 
                 Platform.runLater(() -> {
-                    // Limpiar la pantalla y reorganizar
-                    root.getChildren().clear();
+                    // 1. Ocultar los campos de entrada y el botón de Iniciar Viaje
+                    // Esto asume que estos elementos están fuera del 'opcionesContainer'
+                    origenContainer.setVisible(false);
+                    destinoContainer.setVisible(false);
+                    btnIniciarViaje.setVisible(false); // Asumiendo que estaba visible
 
-                    // Agregar solo los elementos necesarios en el nuevo orden
-                    root.getChildren().addAll(
-                            opcionesContainer,
-                            btnCerrarSesion
-                    );
+                    // 2. Limpiar opcionesContainer (donde se van a mostrar las opciones)
+                    opcionesContainer.getChildren().clear();
 
-                    // Mostrar las opciones de viaje
+                    // 3. Mostrar las opciones de viaje en el contenedor
                     mostrarOpcionesViajeEnPantalla(ruta, opcionesContainer, lblMensaje);
+
+                    // 4. Mostrar el contenedor de opciones y el mensaje de éxito
+                    opcionesContainer.setVisible(true);
+                    lblMensaje.setText("✅ Ruta calculada. Selecciona una opción:");
+                    lblMensaje.setTextFill(Color.web("#28A745")); // Verde de éxito
                 });
 
             } catch (Exception e) {
                 Platform.runLater(() -> {
+                    // Mostrar el error y asegurar que los campos de entrada estén visibles
                     lblMensaje.setText("❌ Error: No se pudo calcular la ruta\n" + e.getMessage());
                     lblMensaje.setTextFill(Color.RED);
                     lblMensaje.setVisible(true);
+
+                    // Asegurar que la UI de búsqueda vuelva a estar visible para reintentar
+                    origenContainer.setVisible(true);
+                    destinoContainer.setVisible(true);
+                    btnIniciarViaje.setVisible(true);
                     opcionesContainer.setVisible(false);
                 });
             }
         }).start();
     }
-
     // ========================================
     // MOSTRAR OPCIONES DE VIAJE EN LA MISMA PANTALLA
     // ========================================
@@ -617,15 +756,34 @@ public class MainApp extends Application {
     // ========================================
     // CONFIRMAR VIAJE (en la misma pantalla)
     // ========================================
+    // ========================================
+// CONFIRMAR VIAJE (en la misma pantalla)
+// ========================================
     private void confirmarViajeEnPantalla(Ruta ruta, TipoViaje tipo, Label lblMensaje, VBox opcionesContainer) {
+
+        // **NOTA IMPORTANTE:**
+        // La lógica de obtener y bloquear la disponibilidad debe estar dentro del sistema,
+        // pero para fines de demostración, la manejamos aquí:
         Conductor conductor = sistema.obtenerConductorDisponible();
 
         if (conductor == null) {
             lblMensaje.setText("❌ Error: No hay conductores disponibles en este momento");
             lblMensaje.setTextFill(Color.RED);
             opcionesContainer.setVisible(false);
+            // Volver a la pantalla de búsqueda, asegurando que los campos estén visibles
+            new Thread(() -> {
+                try {
+                    Thread.sleep(2000);
+                    Platform.runLater(() -> mostrarPantallaBienvenida());
+                } catch (InterruptedException ex) { /* ignorar */ }
+            }).start();
             return;
         }
+
+        // 🔑 PASO CRUCIAL: Marcar como NO DISPONIBLE INMEDIATAMENTE
+        conductor.setDisponible(false);
+        // Y guardar ese estado para persistencia
+        gestorUsuarios.guardarUsuarios();
 
         // Crear viaje según el tipo
         Viaje viaje = switch (tipo) {
@@ -649,11 +807,15 @@ public class MainApp extends Application {
         // Ocultar opciones
         opcionesContainer.setVisible(false);
 
-        // Limpiar selecciones después de 3 segundos
+        // Limpiar selecciones y simular fin de viaje (3 segundos),
+        // luego regresar a la pantalla de bienvenida.
         new Thread(() -> {
             try {
                 Thread.sleep(3000);
                 Platform.runLater(() -> {
+                    // El conductor debería volver a estar disponible AL FINALIZAR el viaje,
+                    // pero esa lógica es compleja (manejo de estados).
+                    // Por ahora, solo cerramos la sesión del cliente.
                     origenSeleccionado = null;
                     destinoSeleccionado = null;
                     mostrarPantallaBienvenida();
@@ -663,70 +825,86 @@ public class MainApp extends Application {
             }
         }).start();
     }
-
     // ========================================
-    // GENERAR HTML CON IFRAME DEL MAPA
+    // GENERAR HTML CON IFRAME DEL MAPA - CORREGIDO
+    // ========================================
+    // ========================================
+    // GENERAR HTML CON IFRAME DEL MAPA - SOLUCIÓN PARA MOSTRAR SOLO MAPA
     // ========================================
     private String generarHTMLMapaConIframe(String linkMapa) {
-        // Convertir el link de direcciones a un embed de Google Maps
+        // ATENCIÓN: Debes usar la clave de API de tu instancia de GooglePlacesService.
+        String API_KEY = "AIzaSyB6uynr_3ELge4l5JrkDNGh3JYs-zO53DI";
+
+        String origen = "";
+        String destino = "";
+
+        // 1. Intentar extraer origen y destino del link original /dir/
+        if (linkMapa.contains("/dir/")) {
+            try {
+                String path = linkMapa.substring(linkMapa.indexOf("/dir/") + 5);
+                String[] parts = path.split("/");
+                if (parts.length >= 2) {
+                    // Los paths del link de Google ya vienen a menudo con URL encoding
+                    origen = parts[0];
+                    destino = parts[1];
+                }
+            } catch (Exception e) {
+                // Si la extracción falla, la URL final será la de fallback
+            }
+        }
+
         String embedUrl;
 
-        // Si el link contiene "/dir/", lo convertimos a formato embed
-        if (linkMapa.contains("/dir/")) {
-            // Extraer las direcciones del link
-            String[] parts = linkMapa.split("/dir/");
-            if (parts.length > 1) {
-                String[] locations = parts[1].split("/");
-                if (locations.length >= 2) {
-                    String origen = locations[0];
-                    String destino = locations[1];
+        // 2. Construir la URL OFICIAL de Google Maps Embed API para DIRECCIONES
+        if (!origen.isEmpty() && !destino.isEmpty()) {
+            try {
+                // Utilizar java.net.URLEncoder para asegurar que las partes sean seguras
+                String encodedOrigin = java.net.URLEncoder.encode(origen, java.nio.charset.StandardCharsets.UTF_8);
+                String encodedDestination = java.net.URLEncoder.encode(destino, java.nio.charset.StandardCharsets.UTF_8);
 
-                    // Usar Google Maps Embed API con tu API key
-                    try {
-                        embedUrl = "https://www.google.com/maps/embed/v1/directions?key=AIzaSyB6uynr_3ELge4l5JrkDNGh3JYs-zO53DI"
-                                + "&origin=" + java.net.URLEncoder.encode(origen, java.nio.charset.StandardCharsets.UTF_8)
-                                + "&destination=" + java.net.URLEncoder.encode(destino, java.nio.charset.StandardCharsets.UTF_8)
-                                + "&mode=driving";
-                    } catch (Exception e) {
-                        embedUrl = linkMapa;
-                    }
-                } else {
-                    embedUrl = linkMapa;
-                }
-            } else {
-                embedUrl = linkMapa;
+                // 🔑 ESTE ES EL FORMATO CLAVE CORREGIDO: USANDO "embed/v1/directions"
+                embedUrl = String.format(
+                        "https://www.google.com/maps/embed/v1/directions?key=%s&origin=%s&destination=%s",
+                        API_KEY,
+                        encodedOrigin,
+                        encodedDestination
+                );
+
+            } catch (Exception e) {
+                embedUrl = linkMapa; // Fallback
             }
         } else {
-            embedUrl = linkMapa;
+            // Si no hay origen/destino, carga un mapa simple centrado (ejemplo: Rosario)
+            // FORMATO para MAPA SIMPLE: "embed/v1/place" o "embed/v1/view"
+            embedUrl = String.format("https://www.google.com/maps/embed/v1/view?key=%s&center=-32.94682,-60.63932&zoom=12", API_KEY);
         }
 
         return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body {
-                        margin: 0;
-                        padding: 0;
-                        overflow: hidden;
-                        background-color: #f0f0f0;
-                    }
-                    iframe {
-                        width: 100%%;
-                        height: 100%%;
-                        border: none;
-                        border-radius: 8px;
-                    }
-                </style>
-            </head>
-            <body>
-                <iframe src="%s" allowfullscreen loading="lazy"></iframe>
-            </body>
-            </html>
-            """.formatted(embedUrl);
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {
+                    margin: 0;
+                    padding: 0;
+                    overflow: hidden;
+                    background-color: #f0f0f0;
+                }
+                iframe {
+                    width: 100%%;
+                    height: 100%%;
+                    border: none;
+                    border-radius: 8px;
+                }
+            </style>
+        </head>
+        <body>
+            <iframe src="%s" allowfullscreen loading="lazy"></iframe>
+        </body>
+        </html>
+        """.formatted(embedUrl);
     }
-
     // ========================================
     // ABRIR MAPA EN NAVEGADOR EXTERNO
     // ========================================
