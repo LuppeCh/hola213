@@ -7,7 +7,11 @@ public final class Conductor extends Usuario {
 
     private boolean disponible;
 
-    // CONSTRUCTOR COMPLETO (Usado por Jackson para cargar desde JSON)
+    // Constructor vacío para Jackson
+    public Conductor() {
+    }
+
+    // Constructor completo usado por Jackson para cargar desde JSON
     @JsonCreator
     public Conductor(
             @JsonProperty("nombre") String nombre,
@@ -17,15 +21,15 @@ public final class Conductor extends Usuario {
         this.disponible = disponible;
     }
 
-    // CONSTRUCTOR SIMPLIFICADO (Usado en el registro)
+    // Constructor simplificado para registro
     public Conductor(String nombre, String email) {
         super(nombre, email);
-        this.disponible = false; // Se inicializa como FALSE por defecto
+        this.disponible = false;
     }
 
     // GETTERS REQUERIDOS POR JACKSON
     public boolean isDisponible() { return disponible; }
-    public void setDisponible(boolean disp) { this.disponible = disp; } // <--- EL SETTER ES CLAVE
+    public void setDisponible(boolean disp) { this.disponible = disp; }
 
     // Método tipo record
     public boolean disponible() { return disponible; }

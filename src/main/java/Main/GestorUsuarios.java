@@ -15,12 +15,10 @@ public class GestorUsuarios {
     private final List<Usuario> usuarios;
     private final ObjectMapper objectMapper;
 
-    // Patrón de email (ej. ejemplo@gmail.com)
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@gmail\\.com$");
 
     public GestorUsuarios() {
         this.objectMapper = new ObjectMapper();
-        // 🔑 Configurar Jackson para manejar subclases (Cliente, Conductor)
         this.objectMapper.registerSubtypes(Cliente.class, Conductor.class);
         this.usuarios = cargarUsuarios();
     }
@@ -29,7 +27,6 @@ public class GestorUsuarios {
     // PERSISTENCIA
     // ========================================
 
-    // 🔑 CORRECCIÓN: CAMBIADO A PUBLIC para que MainApp pueda guardar el estado del Conductor
     public void guardarUsuarios() {
         try {
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(ARCHIVO_USUARIOS), usuarios);
@@ -66,12 +63,10 @@ public class GestorUsuarios {
         return true;
     }
 
-    // 🔑 NUEVO MÉTODO: REGISTRO DE CONDUCTOR
     public boolean registrarConductor(String nombre, String email) {
         if (!validarEmail(email)) return false;
         if (buscarUsuarioPorEmail(email).isPresent()) return false;
 
-        // El constructor de 2 argumentos de Conductor inicializa disponible = false
         Conductor nuevoConductor = new Conductor(nombre, email);
         usuarios.add(nuevoConductor);
         guardarUsuarios();
@@ -82,7 +77,6 @@ public class GestorUsuarios {
     // INICIO DE SESIÓN Y BÚSQUEDA
     // ========================================
 
-    // 🔑 CORRECCIÓN: Devuelve el tipo base Optional<Usuario> para manejar Cliente y Conductor
     public Optional<Usuario> iniciarSesion(String email) {
         return buscarUsuarioPorEmail(email);
     }
@@ -104,7 +98,6 @@ public class GestorUsuarios {
                 .toList();
     }
 
-    // 🔑 NUEVO MÉTODO: OBTENER TODOS LOS CONDUCTORES DISPONIBLES
     public List<Conductor> obtenerConductoresDisponibles() {
         return usuarios.stream()
                 .filter(usuario -> usuario instanceof Conductor)

@@ -1,8 +1,4 @@
 [ {
-  "nombre" : "guadalupe",
-  "email" : "lupe@gmail.com",
-  "disponible" : false
-}, {
-  "nombre" : "sol",
-  "email" : "sol@gmail.com"
+  "nombre" : "lupe",
+  "email" : "lupe@gmail.com"
 } ]
