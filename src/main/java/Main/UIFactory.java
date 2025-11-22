@@ -110,6 +110,310 @@ public class UIFactory {
     }
 
     // ========================================
+// AGREGA ESTOS MÉTODOS A UIFactory.java
+// REEMPLAZA los métodos crearPantallaRegistro
+// ========================================
+
+// ========================================
+// PANTALLA: REGISTRO CLIENTE COMPLETO
+// ========================================
+
+    public Scene crearPantallaRegistroCliente() {
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToWidth(true);
+
+        VBox root = new VBox(15);
+        root.setAlignment(Pos.TOP_CENTER);
+        root.setPadding(new Insets(40));
+
+        Label lblTitulo = new Label("📋 Registro de Cliente");
+        lblTitulo.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #2C3E50;");
+
+        // CAMPOS DE FORMULARIO
+        Label lblNombre = new Label("Nombre:");
+        lblNombre.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        TextField txtNombre = components.crearCampoTexto("Ej: Juan");
+
+        Label lblApellido = new Label("Apellido:");
+        lblApellido.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        TextField txtApellido = components.crearCampoTexto("Ej: Pérez");
+
+        Label lblDni = new Label("DNI:");
+        lblDni.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        TextField txtDni = components.crearCampoTexto("Ej: 12345678");
+
+        Label lblEdad = new Label("Edad:");
+        lblEdad.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        TextField txtEdad = components.crearCampoTexto("Ej: 25");
+
+        Label lblContrasena = new Label("Contraseña:");
+        lblContrasena.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        PasswordField txtContrasena = new PasswordField();
+        txtContrasena.setPromptText("Mínimo 6 caracteres");
+        txtContrasena.setMaxWidth(300);
+        txtContrasena.setPrefHeight(35);
+
+        Label lblEmail = new Label("Email:");
+        lblEmail.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        TextField txtEmail = components.crearCampoTexto("ejemplo@gmail.com");
+
+        Label lblMensaje = components.crearLabelMensaje();
+
+        Button btnRegistrar = new Button("✅ Registrarse");
+        btnRegistrar.setStyle(
+                "-fx-font-size: 16px; -fx-padding: 12 40; -fx-background-color: #27AE60; " +
+                        "-fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;"
+        );
+        btnRegistrar.setOnAction(e -> {
+            try {
+                String nombre = txtNombre.getText().trim();
+                String apellido = txtApellido.getText().trim();
+                String dni = txtDni.getText().trim();
+                String edadStr = txtEdad.getText().trim();
+                String contrasena = txtContrasena.getText();
+                String email = txtEmail.getText().trim();
+
+                // VALIDACIONES
+                if (nombre.isEmpty() || apellido.isEmpty() || dni.isEmpty() ||
+                        edadStr.isEmpty() || contrasena.isEmpty() || email.isEmpty()) {
+                    components.mostrarMensajeError(lblMensaje, "⚠️ Todos los campos son obligatorios");
+                    return;
+                }
+
+                if (contrasena.length() < 6) {
+                    components.mostrarMensajeError(lblMensaje, "⚠️ La contraseña debe tener al menos 6 caracteres");
+                    return;
+                }
+
+                int edad = Integer.parseInt(edadStr);
+
+                if (edad < 18) {
+                    components.mostrarMensajeError(lblMensaje, "⚠️ Debes ser mayor de 18 años");
+                    return;
+                }
+
+                // REGISTRAR
+                AppController.ResultadoOperacion resultado = controller.registrarCliente(
+                        nombre, apellido, dni, edad, contrasena, email
+                );
+
+                if (resultado.exitoso()) {
+                    components.mostrarMensajeExito(lblMensaje, resultado.mensaje());
+                    txtNombre.clear();
+                    txtApellido.clear();
+                    txtDni.clear();
+                    txtEdad.clear();
+                    txtContrasena.clear();
+                    txtEmail.clear();
+                } else {
+                    components.mostrarMensajeError(lblMensaje, resultado.mensaje());
+                }
+
+            } catch (NumberFormatException ex) {
+                components.mostrarMensajeError(lblMensaje, "⚠️ La edad debe ser un número válido");
+            }
+        });
+
+        Button btnVolver = components.crearBotonVolver();
+        btnVolver.setOnAction(e -> controller.navegarA(Pantalla.SELECCION_TIPO_REGISTRO));
+
+        root.getChildren().addAll(
+                lblTitulo,
+                lblNombre, txtNombre,
+                lblApellido, txtApellido,
+                lblDni, txtDni,
+                lblEdad, txtEdad,
+                lblContrasena, txtContrasena,
+                lblEmail, txtEmail,
+                btnRegistrar,
+                lblMensaje,
+                btnVolver
+        );
+
+        root.setStyle("-fx-background-color: linear-gradient(to bottom, #a8edea 0%, #fed6e3 100%);");
+        scrollPane.setContent(root);
+        return new Scene(scrollPane);
+    }
+
+// ========================================
+// PANTALLA: REGISTRO CONDUCTOR COMPLETO
+// ========================================
+
+    public Scene crearPantallaRegistroConductor() {
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToWidth(true);
+
+        VBox root = new VBox(15);
+        root.setAlignment(Pos.TOP_CENTER);
+        root.setPadding(new Insets(40));
+
+        Label lblTitulo = new Label("🚗 Registro de Conductor");
+        lblTitulo.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #2C3E50;");
+
+        // DATOS PERSONALES
+        Label lblSeccionPersonal = new Label("📋 Datos Personales");
+        lblSeccionPersonal.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #34495E; -fx-padding: 10 0 5 0;");
+
+        TextField txtNombre = crearCampoConLabel("Nombre:", "Ej: Juan");
+        TextField txtApellido = crearCampoConLabel("Apellido:", "Ej: Pérez");
+        TextField txtDni = crearCampoConLabel("DNI:", "Ej: 12345678");
+        TextField txtEdad = crearCampoConLabel("Edad:", "Ej: 30");
+
+        PasswordField txtContrasena = new PasswordField();
+        txtContrasena.setPromptText("Contraseña (mínimo 6 caracteres)");
+        txtContrasena.setMaxWidth(300);
+        txtContrasena.setPrefHeight(35);
+
+        TextField txtEmail = crearCampoConLabel("Email:", "ejemplo@gmail.com");
+
+        // DATOS DEL VEHÍCULO
+        Label lblSeccionVehiculo = new Label("🚙 Datos del Vehículo");
+        lblSeccionVehiculo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #34495E; -fx-padding: 15 0 5 0;");
+
+        TextField txtModelo = crearCampoConLabel("Modelo del auto:", "Ej: Toyota Corolla 2020");
+        TextField txtPatente = crearCampoConLabel("Patente:", "Ej: ABC123");
+
+        CheckBox chkAire = new CheckBox("¿Tiene aire acondicionado?");
+        chkAire.setStyle("-fx-font-size: 14px;");
+
+        Label lblCapacidad = new Label("Capacidad de pasajeros:");
+        lblCapacidad.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        ComboBox<Integer> cmbCapacidad = new ComboBox<>();
+        cmbCapacidad.getItems().addAll(2, 3, 4, 5, 6, 7);
+        cmbCapacidad.setValue(4);
+        cmbCapacidad.setMaxWidth(300);
+
+        // UBICACIÓN INICIAL
+        Label lblSeccionUbicacion = new Label("📍 Ubicación Inicial");
+        lblSeccionUbicacion.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #34495E; -fx-padding: 15 0 5 0;");
+
+        TextField txtLatitud = crearCampoConLabel("Latitud:", "-32.9468 (Rosario)");
+        TextField txtLongitud = crearCampoConLabel("Longitud:", "-60.6393 (Rosario)");
+
+        Label lblMensaje = components.crearLabelMensaje();
+
+        Button btnRegistrar = new Button("✅ Registrarse como Conductor");
+        btnRegistrar.setStyle(
+                "-fx-font-size: 16px; -fx-padding: 12 40; -fx-background-color: #3498DB; " +
+                        "-fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;"
+        );
+        btnRegistrar.setOnAction(e -> {
+            try {
+                String nombre = txtNombre.getText().trim();
+                String apellido = txtApellido.getText().trim();
+                String dni = txtDni.getText().trim();
+                String edadStr = txtEdad.getText().trim();
+                String contrasena = txtContrasena.getText();
+                String email = txtEmail.getText().trim();
+                String modelo = txtModelo.getText().trim();
+                String patente = txtPatente.getText().trim();
+                boolean tieneAire = chkAire.isSelected();
+                int capacidad = cmbCapacidad.getValue();
+                String latStr = txtLatitud.getText().trim();
+                String lonStr = txtLongitud.getText().trim();
+
+                // VALIDACIONES
+                if (nombre.isEmpty() || apellido.isEmpty() || dni.isEmpty() ||
+                        edadStr.isEmpty() || contrasena.isEmpty() || email.isEmpty() ||
+                        modelo.isEmpty() || patente.isEmpty() || latStr.isEmpty() || lonStr.isEmpty()) {
+                    components.mostrarMensajeError(lblMensaje, "⚠️ Todos los campos son obligatorios");
+                    return;
+                }
+
+                if (contrasena.length() < 6) {
+                    components.mostrarMensajeError(lblMensaje, "⚠️ La contraseña debe tener al menos 6 caracteres");
+                    return;
+                }
+
+                int edad = Integer.parseInt(edadStr);
+                if (edad < 21) {
+                    components.mostrarMensajeError(lblMensaje, "⚠️ Los conductores deben tener al menos 21 años");
+                    return;
+                }
+
+                double latitud = Double.parseDouble(latStr);
+                double longitud = Double.parseDouble(lonStr);
+
+                // REGISTRAR
+                AppController.ResultadoOperacion resultado = controller.registrarConductor(
+                        nombre, apellido, dni, edad, contrasena, email,
+                        modelo, patente, tieneAire, capacidad,
+                        latitud, longitud
+                );
+
+                if (resultado.exitoso()) {
+                    components.mostrarMensajeExito(lblMensaje, resultado.mensaje());
+                    // Limpiar campos
+                    txtNombre.clear();
+                    txtApellido.clear();
+                    txtDni.clear();
+                    txtEdad.clear();
+                    txtContrasena.clear();
+                    txtEmail.clear();
+                    txtModelo.clear();
+                    txtPatente.clear();
+                    chkAire.setSelected(false);
+                    txtLatitud.clear();
+                    txtLongitud.clear();
+                } else {
+                    components.mostrarMensajeError(lblMensaje, resultado.mensaje());
+                }
+
+            } catch (NumberFormatException ex) {
+                components.mostrarMensajeError(lblMensaje, "⚠️ Verifica que edad, latitud y longitud sean números válidos");
+            }
+        });
+
+        Button btnVolver = components.crearBotonVolver();
+        btnVolver.setOnAction(e -> controller.navegarA(Pantalla.SELECCION_TIPO_REGISTRO));
+
+        root.getChildren().addAll(
+                lblTitulo,
+                lblSeccionPersonal,
+                crearLabelCampo("Nombre:"), txtNombre,
+                crearLabelCampo("Apellido:"), txtApellido,
+                crearLabelCampo("DNI:"), txtDni,
+                crearLabelCampo("Edad:"), txtEdad,
+                crearLabelCampo("Contraseña:"), txtContrasena,
+                crearLabelCampo("Email:"), txtEmail,
+                lblSeccionVehiculo,
+                crearLabelCampo("Modelo del auto:"), txtModelo,
+                crearLabelCampo("Patente:"), txtPatente,
+                chkAire,
+                lblCapacidad, cmbCapacidad,
+                lblSeccionUbicacion,
+                crearLabelCampo("Latitud:"), txtLatitud,
+                crearLabelCampo("Longitud:"), txtLongitud,
+                btnRegistrar,
+                lblMensaje,
+                btnVolver
+        );
+
+        root.setStyle("-fx-background-color: linear-gradient(to bottom, #a8edea 0%, #fed6e3 100%);");
+        scrollPane.setContent(root);
+        return new Scene(scrollPane);
+    }
+
+// ========================================
+// MÉTODOS AUXILIARES
+// ========================================
+
+    private TextField crearCampoConLabel(String labelText, String prompt) {
+        TextField txt = new TextField();
+        txt.setPromptText(prompt);
+        txt.setMaxWidth(300);
+        txt.setPrefHeight(35);
+        txt.setStyle("-fx-font-size: 13px;");
+        return txt;
+    }
+
+    private Label crearLabelCampo(String texto) {
+        Label lbl = new Label(texto);
+        lbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        return lbl;
+    }
+
+    // ========================================
     // PANTALLA 4: REGISTRO (UNIFICADA)
     // ========================================
 
@@ -142,9 +446,9 @@ public class UIFactory {
 
             AppController.ResultadoOperacion resultado;
             if (esCliente) {
-                resultado = controller.registrarCliente(nombre, email);
+                resultado = controller.registrarCliente(nombre, apellido, dni, edad, contrasena, gmail);
             } else {
-                resultado = controller.registrarConductor(nombre, email);
+                resultado = controller.registrarConductor(nombre, apellido, dni, edad, contrasena, gmail);
             }
 
             if (resultado.exitoso()) {
@@ -217,13 +521,13 @@ public class UIFactory {
 
         Cliente cliente = controller.getClienteActual();
 
-        Label lblBienvenida = new Label("¡Bienvenido/a " + cliente.nombre() + "!");
+        Label lblBienvenida = new Label("¡Bienvenido/a " + cliente.getNombre() + "!");
         lblBienvenida.setTextFill(Color.web("#343A40"));
         lblBienvenida.styleProperty().bind(Bindings.concat(
                 "-fx-font-size: ", stage.widthProperty().divide(28), "px; -fx-font-weight: bold;"
         ));
 
-        Label lblEmail = new Label("Email: " + cliente.email());
+        Label lblEmail = new Label("Email: " + cliente.getGmail());
         lblEmail.setTextFill(Color.web("#6C757D"));
         lblEmail.styleProperty().bind(Bindings.concat(
                 "-fx-font-size: ", stage.widthProperty().divide(50), "px;"
@@ -354,28 +658,56 @@ public class UIFactory {
         Label titulo = new Label("Elige tu tipo de viaje:");
         titulo.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 20 0 15 0;");
 
-        Button btnEstandar = crearBotonViaje("🚗 Estándar", ruta.tiempoTexto(), "#4CAF50");
-        Button btnXL = crearBotonViaje("🚙 XL", ruta.tiempoTexto(), "#FF9800");
-        Button btnLujo = crearBotonViaje("💎 Lujo", ruta.tiempoTexto(), "#9C27B0");
+        // ✅ CALCULAR PRECIOS PARA CADA TIPO
+        SistemaFachada.ResultadoPrecio precioEstandar = controller.calcularPrecio(ruta, TipoViaje.Estandar);
+        SistemaFachada.ResultadoPrecio precioXL = controller.calcularPrecio(ruta, TipoViaje.XL);
+        SistemaFachada.ResultadoPrecio precioLujo = controller.calcularPrecio(ruta, TipoViaje.Lujo);
+
+        // ✅ CREAR BOTONES CON PRECIO
+        Button btnEstandar = crearBotonViajeConPrecio("🚗 Estándar", precioEstandar, "#4CAF50");
+        Button btnXL = crearBotonViajeConPrecio("🚙 XL", precioXL, "#FF9800");
+        Button btnLujo = crearBotonViajeConPrecio("💎 Lujo", precioLujo, "#9C27B0");
 
         btnEstandar.setOnAction(e -> confirmarViaje(TipoViaje.Estandar, lblMensaje, opcionesContainer));
         btnXL.setOnAction(e -> confirmarViaje(TipoViaje.XL, lblMensaje, opcionesContainer));
         btnLujo.setOnAction(e -> confirmarViaje(TipoViaje.Lujo, lblMensaje, opcionesContainer));
 
+        // ✅ MOSTRAR DESCUENTOS SI APLICAN
+        VBox descuentosBox = new VBox(5);
+        descuentosBox.setAlignment(Pos.CENTER);
+
+        if (precioEstandar.descuentoPorcentaje() > 0 && !precioEstandar.resumenDescuentos().isEmpty()) {
+            Label lblDescuentos = new Label(precioEstandar.resumenDescuentos());
+            lblDescuentos.setStyle("-fx-font-size: 14px; -fx-text-fill: #FF5722; -fx-font-weight: bold; -fx-background-color: #FFF3E0; -fx-padding: 10; -fx-border-color: #FF9800; -fx-border-radius: 5; -fx-background-radius: 5;");
+            lblDescuentos.setMaxWidth(400);
+            lblDescuentos.setWrapText(true);
+            descuentosBox.getChildren().add(lblDescuentos);
+        }
+
         VBox mapaContainer = components.crearComponenteMapa(ruta);
 
-        opcionesContainer.getChildren().addAll(lblInfoRuta, titulo, btnEstandar, btnXL, btnLujo, mapaContainer);
+        opcionesContainer.getChildren().addAll(lblInfoRuta, descuentosBox, titulo, btnEstandar, btnXL, btnLujo, mapaContainer);
         opcionesContainer.setVisible(true);
         lblMensaje.setVisible(false);
     }
 
-    private Button crearBotonViaje(String texto, String tiempo, String color) {
-        Button btn = new Button(texto + " - ⏱️ " + tiempo);
+    // ✅ NUEVO MÉTODO: Botón con precio
+    private Button crearBotonViajeConPrecio(String tipo, SistemaFachada.ResultadoPrecio precio, String color) {
+        String textoPrecio;
+        if (precio.descuentoPorcentaje() > 0) {
+            textoPrecio = String.format("%s\n💰 $%.2f (Antes: $%.2f | Descuento: %.0f%%)",
+                    tipo, precio.tarifaFinal(), precio.tarifaBase(), precio.descuentoPorcentaje());
+        } else {
+            textoPrecio = String.format("%s\n💰 $%.2f", tipo, precio.tarifaFinal());
+        }
+
+        Button btn = new Button(textoPrecio);
         btn.setStyle(
                 "-fx-font-size: 14px; -fx-padding: 15 30; -fx-background-color: " + color + "; " +
                         "-fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;"
         );
-        btn.setPrefWidth(350);
+        btn.setPrefWidth(400);
+        btn.setWrapText(true);
         return btn;
     }
 
@@ -411,7 +743,7 @@ public class UIFactory {
 
         Conductor conductor = controller.getConductorActual();
 
-        Label lblBienvenida = new Label("Hola Conductor " + conductor.nombre());
+        Label lblBienvenida = new Label("Hola Conductor " + conductor.getNombre());
         lblBienvenida.setStyle("-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #333;");
 
         Label lblEstado = new Label("🟢 ¡Estás disponible para viajes!");

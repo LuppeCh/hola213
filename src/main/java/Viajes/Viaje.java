@@ -9,18 +9,15 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.io.Serializable;
 
-// =======================================================
-// ANOTACIONES DE JACKSON PARA MANEJAR POLIMORFISMO
-// =======================================================
 @JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME, // Usar el nombre de la subclase
-        include = JsonTypeInfo.As.PROPERTY, // Incluir la información como una propiedad en el JSON
-        property = "tipoClase" // Nombre de la propiedad que contendrá el tipo (ej: "tipoClase": "Estandar")
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "tipoClase"
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = ViajeEstandar.class, name = "Estandar"), // Mapea la subclase ViajeEstandar
-        @JsonSubTypes.Type(value = ViajeXL.class, name = "XL"),           // Mapea la subclase ViajeXL
-        @JsonSubTypes.Type(value = ViajeLujo.class, name = "Lujo")         // Mapea la subclase ViajeLujo
+        @JsonSubTypes.Type(value = ViajeEstandar.class, name = "Estandar"),
+        @JsonSubTypes.Type(value = ViajeXL.class, name = "XL"),
+        @JsonSubTypes.Type(value = ViajeLujo.class, name = "Lujo")
 })
 public sealed abstract class Viaje implements Serializable
         permits ViajeEstandar, ViajeXL, ViajeLujo {
@@ -30,10 +27,7 @@ public sealed abstract class Viaje implements Serializable
     protected Conductor conductor;
     protected TipoViaje tipo;
 
-    // CONSTRUCTOR REQUERIDO POR JACKSON PARA DESERIALIZACIÓN (si no es un Java Record)
-    // Aunque es una clase abstracta, Jackson necesita este constructor para inicializar
-    // los campos antes de pasarlos al constructor de la subclase.
-    // Si usas Java Records, Jackson lo maneja automáticamente.
+    // Constructor vacío para Jackson
     public Viaje() {
     }
 
@@ -50,15 +44,21 @@ public sealed abstract class Viaje implements Serializable
         return tipo.calcularPrecio(precioBase);
     }
 
-    // Jackson usa los métodos getters para la serialización
+    // GETTERS para Jackson (serialización)
     public Ruta getRuta() { return ruta; }
     public Cliente getCliente() { return cliente; }
     public Conductor getConductor() { return conductor; }
-    public TipoViaje getTipo() {return tipo;}
+    public TipoViaje getTipo() { return tipo; }
 
-    // Si quieres mantener los métodos estilo record (que ya tenías):
+    // SETTERS para Jackson (deserialización)
+    public void setRuta(Ruta ruta) { this.ruta = ruta; }
+    public void setCliente(Cliente cliente) { this.cliente = cliente; }
+    public void setConductor(Conductor conductor) { this.conductor = conductor; }
+    public void setTipo(TipoViaje tipo) { this.tipo = tipo; }
+
+    // Métodos estilo record (para código más limpio)
     public Ruta ruta() { return ruta; }
     public Cliente cliente() { return cliente; }
     public Conductor conductor() { return conductor; }
-    public TipoViaje tipo() {return tipo;}
+    public TipoViaje tipo() { return tipo; }
 }

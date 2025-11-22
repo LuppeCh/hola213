@@ -5,11 +5,6 @@ import javafx.stage.Stage;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Controlador principal que coordina entre la UI y la lógica de negocio.
- * Esta clase es la ÚNICA que tiene acceso tanto a la UI como al Sistema.
- * Actúa como intermediario, manteniendo el desacoplamiento.
- */
 public class AppController {
 
     private final Stage stage;
@@ -40,8 +35,8 @@ public class AppController {
         navegador.registrarPantalla(Pantalla.TITULO, () -> uiFactory.crearPantallaTitulo());
         navegador.registrarPantalla(Pantalla.LOGIN_REGISTRO, () -> uiFactory.crearPantallaLoginRegistro());
         navegador.registrarPantalla(Pantalla.SELECCION_TIPO_REGISTRO, () -> uiFactory.crearPantallaSeleccionTipoRegistro());
-        navegador.registrarPantalla(Pantalla.REGISTRO_CLIENTE, () -> uiFactory.crearPantallaRegistro(true));
-        navegador.registrarPantalla(Pantalla.REGISTRO_CONDUCTOR, () -> uiFactory.crearPantallaRegistro(false));
+        navegador.registrarPantalla(Pantalla.REGISTRO_CLIENTE, () -> uiFactory.crearPantallaRegistroCliente());
+        navegador.registrarPantalla(Pantalla.REGISTRO_CONDUCTOR, () -> uiFactory.crearPantallaRegistroConductor());
         navegador.registrarPantalla(Pantalla.LOGIN, () -> uiFactory.crearPantallaLogin());
         navegador.registrarPantalla(Pantalla.BIENVENIDA_CLIENTE, () -> uiFactory.crearPantallaBienvenidaCliente());
         navegador.registrarPantalla(Pantalla.DASHBOARD_CONDUCTOR, () -> uiFactory.crearPantallaDashboardConductor());
@@ -63,8 +58,9 @@ public class AppController {
     // OPERACIONES DE AUTENTICACIÓN
     // ========================================
 
-    public ResultadoOperacion registrarCliente(String nombre, String email) {
-        boolean exitoso = sistema.registrarCliente(nombre, email);
+    public ResultadoOperacion registrarCliente(String nombre, String apellido, String dni,
+                                               int edad, String contrasena, String gmail) {
+        boolean exitoso = sistema.registrarCliente(nombre, apellido, dni, edad, contrasena, gmail);
 
         if (exitoso) {
             return new ResultadoOperacion(true, "✅ Registro exitoso! Ahora puedes iniciar sesión");
@@ -73,8 +69,16 @@ public class AppController {
         }
     }
 
-    public ResultadoOperacion registrarConductor(String nombre, String email) {
-        boolean exitoso = sistema.registrarConductor(nombre, email);
+    public ResultadoOperacion registrarConductor(String nombre, String apellido, String dni,
+                                                 int edad, String contrasena, String gmail,
+                                                 String modeloAuto, String patenteAuto,
+                                                 boolean tieneAire, int capacidad,
+                                                 double latitud, double longitud) {
+        boolean exitoso = sistema.registrarConductor(
+                nombre, apellido, dni, edad, contrasena, gmail,
+                modeloAuto, patenteAuto, tieneAire, capacidad,
+                latitud, longitud
+        );
 
         if (exitoso) {
             return new ResultadoOperacion(true, "✅ Registro exitoso! Ahora puedes iniciar sesión");
@@ -110,7 +114,6 @@ public class AppController {
     }
 
     public void cerrarSesion() {
-        // Si es conductor, desactivar
         if (usuarioActual instanceof Conductor conductor) {
             sistema.desactivarConductor(conductor);
         }
@@ -161,6 +164,16 @@ public class AppController {
                 });
     }
 
+    public SistemaFachada.ResultadoPrecio calcularPrecio(Ruta ruta, TipoViaje tipo) {
+        Cliente cliente = getClienteActual();
+        if (cliente == null) {
+            throw new IllegalStateException("No hay cliente logueado");
+        }
+
+        return sistema.calcularPrecioViaje(ruta, cliente, tipo,
+                origenSeleccionado, destinoSeleccionado);
+    }
+
     public ResultadoOperacion confirmarViaje(TipoViaje tipo) {
         if (!(usuarioActual instanceof Cliente cliente)) {
             return new ResultadoOperacion(false, "Error: No hay cliente en sesión");
@@ -176,10 +189,12 @@ public class AppController {
             Viaje viaje = resultado.viaje();
             String mensaje = String.format(
                     "🎉 ¡Viaje Confirmado!\nTipo: %s | Conductor: %s\nDistancia: %s | Tiempo: %s\n¡Buen viaje! 🚗",
-                    tipo, viaje.conductor().nombre(), rutaActual.distanciaTexto(), rutaActual.tiempoTexto()
+                    tipo,
+                    viaje.getConductor().getNombre(),
+                    rutaActual.distanciaTexto(),
+                    rutaActual.tiempoTexto()
             );
 
-            // Limpiar estado
             origenSeleccionado = null;
             destinoSeleccionado = null;
             rutaActual = null;

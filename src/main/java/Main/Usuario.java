@@ -5,13 +5,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.io.Serializable;
 import java.time.LocalDate;
 
-/**
- * Clase base Usuario con persistencia corregida.
- * CAMBIOS PARA PERSISTENCIA:
- * - Constructor vacío requerido por Jackson
- * - Getters públicos para todos los campos
- * - Anotaciones de polimorfismo correctas
- */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
@@ -32,15 +25,12 @@ public sealed abstract class Usuario implements Serializable
     protected String gmail;
     protected LocalDate fechaRegistro;
 
-    // ========================================
-    // CONSTRUCTORES
-    // ========================================
-
-    // Constructor vacío REQUERIDO por Jackson
+    // Constructor vacío para Jackson
     protected Usuario() {
         this.fechaRegistro = LocalDate.now();
     }
 
+    // Constructor completo
     public Usuario(String nombre, String apellido, String dni, int edad,
                    String contrasena, String gmail) {
         this.nombre = nombre;
@@ -52,10 +42,7 @@ public sealed abstract class Usuario implements Serializable
         this.fechaRegistro = LocalDate.now();
     }
 
-    // ========================================
-    // GETTERS (REQUERIDOS POR JACKSON)
-    // ========================================
-
+    // GETTERS
     public String getNombre() { return nombre; }
     public String getApellido() { return apellido; }
     public String getDni() { return dni; }
@@ -64,10 +51,7 @@ public sealed abstract class Usuario implements Serializable
     public String getGmail() { return gmail; }
     public LocalDate getFechaRegistro() { return fechaRegistro; }
 
-    // ========================================
-    // SETTERS (REQUERIDOS POR JACKSON)
-    // ========================================
-
+    // SETTERS
     public void setNombre(String nombre) { this.nombre = nombre; }
     public void setApellido(String apellido) { this.apellido = apellido; }
     public void setDni(String dni) { this.dni = dni; }
@@ -76,10 +60,7 @@ public sealed abstract class Usuario implements Serializable
     public void setGmail(String gmail) { this.gmail = gmail; }
     public void setFechaRegistro(LocalDate fecha) { this.fechaRegistro = fecha; }
 
-    // ========================================
-    // MÉTODOS DE ACCESO ESTILO RECORD
-    // ========================================
-
+    // Métodos de acceso estilo record
     public String nombreCompleto() {
         return nombre + " " + apellido;
     }

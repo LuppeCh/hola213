@@ -6,35 +6,79 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public final class Conductor extends Usuario {
 
     private boolean disponible;
+    private boolean premium;
+    private Coordenada ubicacion;
+
+    // NUEVOS CAMPOS
+    private String modeloAuto;
+    private String patenteAuto;
+    private boolean tieneAireAcondicionado;
+    private int capacidadPasajeros;
 
     // Constructor vacío para Jackson
     public Conductor() {
         super();
         this.disponible = false;
+        this.premium = false;
+        this.ubicacion = new Coordenada(-32.9468, -60.6393); // Rosario por defecto
+        this.modeloAuto = "";
+        this.patenteAuto = "";
+        this.tieneAireAcondicionado = false;
+        this.capacidadPasajeros = 4;
     }
 
-    @JsonCreator
-    public Conductor(
-            @JsonProperty("nombre") String nombre,
-            @JsonProperty("email") String email,
-            @JsonProperty("disponible") boolean disponible) {
-        super(nombre, "", "", 0, "", email);
-        this.disponible = disponible;
-    }
-
-    public Conductor(String nombre, String email) {
-        super(nombre, "", "", 0, "", email);
+    // Constructor COMPLETO
+    public Conductor(String nombre, String apellido, String dni, int edad,
+                     String contrasena, String gmail,
+                     String modeloAuto, String patenteAuto,
+                     boolean tieneAireAcondicionado, int capacidadPasajeros,
+                     double latitud, double longitud) {
+        super(nombre, apellido, dni, edad, contrasena, gmail);
         this.disponible = false;
+        this.premium = false;
+        this.ubicacion = new Coordenada(latitud, longitud);
+        this.modeloAuto = modeloAuto;
+        this.patenteAuto = patenteAuto;
+        this.tieneAireAcondicionado = tieneAireAcondicionado;
+        this.capacidadPasajeros = capacidadPasajeros;
     }
 
+    // GETTERS Y SETTERS
     public boolean isDisponible() { return disponible; }
     public void setDisponible(boolean disp) { this.disponible = disp; }
-
-    // Método tipo record
     public boolean disponible() { return disponible; }
 
+    public boolean isPremium() { return premium; }
+    public void setPremium(boolean premium) { this.premium = premium; }
+    public boolean esPremium() { return premium; }
+
+    public Coordenada getUbicacion() { return ubicacion; }
+    public void setUbicacion(Coordenada ubicacion) { this.ubicacion = ubicacion; }
+
+    public String getModeloAuto() { return modeloAuto; }
+    public void setModeloAuto(String modelo) { this.modeloAuto = modelo; }
+
+    public String getPatenteAuto() { return patenteAuto; }
+    public void setPatenteAuto(String patente) { this.patenteAuto = patente; }
+
+    public boolean isTieneAireAcondicionado() { return tieneAireAcondicionado; }
+    public void setTieneAireAcondicionado(boolean aire) { this.tieneAireAcondicionado = aire; }
+
+    public int getCapacidadPasajeros() { return capacidadPasajeros; }
+    public void setCapacidadPasajeros(int capacidad) { this.capacidadPasajeros = capacidad; }
+
+    /**
+     * Calcula la distancia a una ubicación usando la fórmula de Haversine
+     */
+    public double distanciaA(Coordenada otra) {
+        if (this.ubicacion == null || otra == null) {
+            return Double.MAX_VALUE;
+        }
+        return this.ubicacion.distanciaA(otra);
+    }
+
     // ========================================
-    // RECORD COORDENADA (PARA FUNCIONALIDAD FUTURA)
+    // RECORD COORDENADA
     // ========================================
 
     public record Coordenada(double latitud, double longitud) {

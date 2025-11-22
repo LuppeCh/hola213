@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -114,13 +116,26 @@ public class Sistema {
         File archivo = new File(ARCHIVO_VIAJES);
 
         if (!archivo.exists() || archivo.length() == 0) {
+            System.out.println("⚠️ Archivo de viajes vacío o no existe. Iniciando lista vacía.");
             return new ArrayList<>();
         }
 
         try {
             return objectMapper.readValue(archivo, new TypeReference<List<Viaje>>() {});
         } catch (IOException e) {
-            System.err.println("Error al cargar viajes: " + e.getMessage());
+            System.err.println("❌ Error al cargar viajes (archivo corrupto): " + e.getMessage());
+            System.err.println("   Se creará un nuevo archivo al guardar el próximo viaje.");
+
+            // OPCIÓN: Hacer backup del archivo corrupto
+            try {
+                Files.copy(archivo.toPath(),
+                        new File(ARCHIVO_VIAJES + ".backup").toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("✅ Backup creado: viajes.json.backup");
+            } catch (IOException backupError) {
+                System.err.println("⚠️ No se pudo crear backup: " + backupError.getMessage());
+            }
+
             return new ArrayList<>();
         }
     }

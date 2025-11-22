@@ -1,4 +1,9 @@
 [ {
-  "nombre" : "lupe",
-  "email" : "lupe@gmail.com"
-} ]
+  "nombre" : "Pedro",
+  "disponible" : false,
+  "apellido" : "",
+  "dni" : "",
+  "edad" : 0,
+  "contrasena" : "",
+  "gmail" : "pedro@gmail.com",
+  "fechaRegistro"

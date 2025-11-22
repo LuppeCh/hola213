@@ -10,24 +10,37 @@ public class SistemaFachada {
     private final Sistema sistema;
     private final GooglePlacesService placesService;
     private final DistanceCalculator distanceCalculator;
+    private final SistemaTarifas sistemaTarifas;
+    private final SistemaDescuentos sistemaDescuentos;
 
     public SistemaFachada() {
         this.gestorUsuarios = new GestorUsuarios();
         this.sistema = new Sistema(gestorUsuarios);
         this.placesService = new GooglePlacesService("AIzaSyB6uynr_3ELge4l5JrkDNGh3JYs-zO53DI");
         this.distanceCalculator = new DistanceCalculator();
+        this.sistemaTarifas = new SistemaTarifas();
+        this.sistemaDescuentos = new SistemaDescuentos();
     }
 
     // ========================================
-    // GESTIÓN DE USUARIOS
+    // GESTIÓN DE USUARIOS - MÉTODOS ACTUALIZADOS
     // ========================================
 
-    public boolean registrarCliente(String nombre, String email) {
-        return gestorUsuarios.registrarCliente(nombre, email);
+    public boolean registrarCliente(String nombre, String apellido, String dni,
+                                    int edad, String contrasena, String gmail) {
+        return gestorUsuarios.registrarCliente(nombre, apellido, dni, edad, contrasena, gmail);
     }
 
-    public boolean registrarConductor(String nombre, String email) {
-        return gestorUsuarios.registrarConductor(nombre, email);
+    public boolean registrarConductor(String nombre, String apellido, String dni,
+                                      int edad, String contrasena, String gmail,
+                                      String modeloAuto, String patenteAuto,
+                                      boolean tieneAire, int capacidad,
+                                      double latitud, double longitud) {
+        return gestorUsuarios.registrarConductor(
+                nombre, apellido, dni, edad, contrasena, gmail,
+                modeloAuto, patenteAuto, tieneAire, capacidad,
+                latitud, longitud
+        );
     }
 
     public ResultadoLogin iniciarSesion(String email) {
@@ -84,6 +97,43 @@ public class SistemaFachada {
     }
 
     // ========================================
+    // CÁLCULO DE PRECIOS
+    // ========================================
+
+    public ResultadoPrecio calcularPrecioViaje(Ruta ruta, Cliente cliente, TipoViaje tipo,
+                                               String origen, String destino) {
+
+        double[] descuentos = sistemaDescuentos.calcularTodosLosDescuentos(
+                cliente,
+                origen,
+                destino
+        );
+
+        SistemaTarifas.ResultadoTarifa resultado = sistemaTarifas.calcularTarifaConDescuentos(
+                ruta.distanciaMetros(),
+                tipo,
+                descuentos
+        );
+
+        String resumenDescuentos = "";
+        if (descuentos.length > 0) {
+            resumenDescuentos = sistemaDescuentos.obtenerResumenDescuentos(
+                    cliente,
+                    origen,
+                    destino
+            );
+        }
+
+        return new ResultadoPrecio(
+                resultado.tarifaBase(),
+                resultado.descuentoPorcentaje(),
+                resultado.tarifaFinal(),
+                resumenDescuentos,
+                resultado.formatoDetallado()
+        );
+    }
+
+    // ========================================
     // GESTIÓN DE VIAJES
     // ========================================
 
@@ -122,12 +172,20 @@ public class SistemaFachada {
     }
 
     // ========================================
-    // RECORD
+    // RECORDS
     // ========================================
 
     public record ResultadoViaje(
             boolean exitoso,
             String mensaje,
             Viaje viaje
+    ) {}
+
+    public record ResultadoPrecio(
+            double tarifaBase,
+            double descuentoPorcentaje,
+            double tarifaFinal,
+            String resumenDescuentos,
+            String detalleCompleto
     ) {}
 }
